@@ -7,17 +7,19 @@
 #endif
 
 typedef struct {
+    int id;
     float x;
     float y;
     float r;
-    char corPreenchimento[32];
-    char corBorda[32];
+    char corPreenchimento[30];
+    char corBorda[30];
 } CirculoStruct;
 
-// Cria um novo círculo com centro (x, y), raio r e cores especificadas
-Circulo* criar_circulo(float x, float y, float r, char* corPreenchimento, char* corBorda) {
+// Cria um novo círculo com centro (x, y), raio r, cores especificadas e id
+Circulo* criar_circulo(float x, float y, float r, char* corPreenchimento, char* corBorda, int id) {
     CirculoStruct* c = (CirculoStruct*) malloc(sizeof(CirculoStruct));
     if (!c) return NULL;
+    c->id = id;
     c->x = x;
     c->y = y;
     c->r = r;
