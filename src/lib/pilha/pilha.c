@@ -9,7 +9,7 @@ typedef struct elemento {
 } Elemento;
 
 // Estrutura da pilha (ponteiro para o topo)
-typedef struct {
+typedef struct pilha {
     Elemento *topo;
 } Pilha;
 
@@ -37,13 +37,13 @@ int push(Pilha *p, void *valor) {
 }
 
 // Remove um elemento (pop)
-int pop(Pilha *p, void **removido) { 
+int pop(Pilha *p, void *removido) { 
     if (vazia(p)) {
         // Pilha vazia
         return 0;
     }
     Elemento *temp = p->topo;
-    *removido = temp->dado;
+    removido = temp->dado;
     p->topo = temp->prox;
     free(temp);
     return 1;

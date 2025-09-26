@@ -1,6 +1,6 @@
-#include "texto.h"
 #include <stdlib.h>
 #include <string.h>
+#include "texto.h"
 
 // Estrutura interna do texto
 typedef struct {

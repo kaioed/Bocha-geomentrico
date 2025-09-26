@@ -6,13 +6,13 @@
  * onde o primeiro elemento inserido é o primeiro a ser removido.
  */
 
-typedef void *Fila;
+typedef struct fila Fila;
 
 /**
  * @brief Inicializa a fila, alocando a estrutura interna e definindo o início e fim como vazios
  * @param fila ponteiro para a fila
  */
-void iniciar_fila(Fila *fila);
+Fila *iniciar_fila();
 
 /**
  * @brief Adiciona um elemento ao final da fila

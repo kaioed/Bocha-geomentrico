@@ -14,9 +14,10 @@ typedef struct fila
 }Fila;
 
 // Inicializa a fila, definindo início e final como NULL
-void iniciar_fila(Fila *fila){
-    fila->final = NULL;
-    fila->inicio = NULL;
+Fila *iniciar_fila(){
+    Fila *f = (Fila *)malloc(sizeof(Fila));
+    f->final = NULL;
+    f->inicio = NULL;
 }
 
 // Adiciona um elemento ao final da fila

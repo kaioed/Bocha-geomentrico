@@ -26,19 +26,61 @@ Linha* criar_linha(float x1, float y1, float x2, float y2, char* cor, int id);
  * @param l ponteiro para a linha
  * @return comprimento da linha
  */
-float comprimento_linha(Linha* l);
+float comprimento_linha(const Linha* l);
 
 /**
  * @brief Recebe um ponteiro para uma linha e retorna a "área" da linha (2.0 * comprimento)
  * @param l ponteiro para a linha
  * @return "área" da linha
  */
-float area_linha(Linha* l);
+float area_linha(const Linha* l);
 
 /**
  * @brief Libera a memória alocada para a linha
  * @param l ponteiro para a linha
  */
 void liberar_linha(Linha* l);
+
+/**
+ * @brief Retorna a coordenada x do ponto inicial da linha
+ * @param l ponteiro para a linha
+ * @return coordenada x do ponto inicial
+ */
+float get_x1_linha(const Linha* l);
+
+/**
+ * @brief Retorna a coordenada y do ponto inicial da linha
+ * @param l ponteiro para a linha
+ * @return coordenada y do ponto inicial
+ */
+float get_y1_linha(const Linha* l);
+
+/**
+ * @brief Retorna a coordenada x do ponto final da linha
+ * @param l ponteiro para a linha
+ * @return coordenada x do ponto final
+ */
+float get_x2_linha(const Linha* l);
+
+/**
+ * @brief Retorna a coordenada y do ponto final da linha
+ * @param l ponteiro para a linha
+ * @return coordenada y do ponto final
+ */
+float get_y2_linha(const Linha* l);
+
+/**
+ * @brief Retorna o id da linha
+ * @param l ponteiro para a linha
+ * @return id da linha
+ */
+int get_id_linha(const Linha* l);
+
+/**
+ * @brief Retorna a cor da linha
+ * @param l ponteiro para a linha
+ * @return ponteiro para string da cor
+ */
+const char* get_cor_linha(const Linha* l);
 
 #endif

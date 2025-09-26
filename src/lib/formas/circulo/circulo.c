@@ -31,12 +31,48 @@ Circulo* criar_circulo(float x, float y, float r, char* corPreenchimento, char* 
 }
 
 // Calcula e retorna a área do círculo
-float area_circulo(Circulo* c) {
-    CirculoStruct* circ = (CirculoStruct*)c;
+float area_circulo(const Circulo* c) {
+    const CirculoStruct* circ = (const CirculoStruct*)c;
     return (float)(M_PI * circ->r * circ->r);
 }
 
 // Libera a memória alocada para o círculo
 void liberar_circulo(Circulo* c) {
     free(c);
+}
+
+// Retorna o raio do círculo
+float get_raio(const Circulo* c) {
+    const CirculoStruct* circ = (const CirculoStruct*)c;
+    return circ->r;
+}
+
+// Retorna a coordenada x do centro do círculo
+float get_x(const Circulo* c) {
+    const CirculoStruct* circ = (const CirculoStruct*)c;
+    return circ->x;
+}
+
+// Retorna a coordenada y do centro do círculo
+float get_y(const Circulo* c) {
+    const CirculoStruct* circ = (const CirculoStruct*)c;
+    return circ->y;
+}
+
+// Retorna o id do círculo
+int get_id_circulo(const Circulo* c) {
+    const CirculoStruct* circ = (const CirculoStruct*)c;
+    return circ->id;
+}
+
+// Retorna a cor de preenchimento do círculo
+const char* get_corPreenchimento_circulo(const Circulo* c) {
+    const CirculoStruct* circ = (const CirculoStruct*)c;
+    return circ->corPreenchimento;
+}
+
+// Retorna a cor da borda do círculo
+const char* get_corBorda_circulo(const Circulo* c) {
+    const CirculoStruct* circ = (const CirculoStruct*)c;
+    return circ->corBorda;
 }

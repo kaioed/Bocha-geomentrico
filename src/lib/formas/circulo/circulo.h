@@ -20,7 +20,7 @@ Circulo* criar_circulo(float x, float y, float r, char* corPreenchimento, char* 
  * @return ponteiro para o círculo criado
  */
 
-float area_circulo(Circulo* c);
+float area_circulo(const Circulo* c);
 /**
  * @brief Recebe um ponteiro para um círculo e retorna a área do círculo
  * @param c ponteiro para o círculo
@@ -32,5 +32,45 @@ void liberar_circulo(Circulo* c);
  * @brief Libera a memória alocada para o círculo
  * @param c ponteiro para o círculo
  */
+
+ float get_raio(const Circulo* c);
+ /**
+  * @brief Retorna o raio do círculo
+  * @param c ponteiro para o círculo
+  * @return raio do círculo
+  */
+
+float get_x(const Circulo* c);
+ /**
+  * @brief Retorna a coordenada x do centro do círculo
+  * @param c ponteiro para o círculo
+  * @return coordenada x do centro do círculo
+  */float get_y(const Circulo* c);
+ /**    
+  * @brief Retorna a coordenada y do centro do círculo
+  * @param c ponteiro para o círculo
+  * @return coordenada y do centro do círculo
+  */    
+
+/**
+ * @brief Retorna o id do círculo
+ * @param c ponteiro para o círculo
+ * @return id do círculo
+ */
+int get_id_circulo(const Circulo* c);
+
+/**
+ * @brief Retorna a cor de preenchimento do círculo
+ * @param c ponteiro para o círculo
+ * @return ponteiro para string da cor de preenchimento
+ */
+const char* get_corPreenchimento_circulo(const Circulo* c);
+
+/**
+ * @brief Retorna a cor da borda do círculo
+ * @param c ponteiro para o círculo
+ * @return ponteiro para string da cor da borda
+ */
+const char* get_corBorda_circulo(const Circulo* c);
 
 #endif
