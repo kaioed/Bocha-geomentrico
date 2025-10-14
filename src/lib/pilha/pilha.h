@@ -6,7 +6,7 @@
  * onde o último elemento inserido é o primeiro a ser removido.
  */
 
-typedef struct pilha Pilha;
+typedef void *Pilha;
 
 /**
  * @brief Inicializa a pilha, alocando a estrutura interna e definindo o topo como vazio

@@ -6,7 +6,7 @@
  * onde o primeiro elemento inserido é o primeiro a ser removido.
  */
 
-typedef struct fila Fila;
+typedef void *Fila;
 
 /**
  * @brief Inicializa a fila, alocando a estrutura interna e definindo o início e fim como vazios
