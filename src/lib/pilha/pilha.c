@@ -2,60 +2,70 @@
 #include <stdlib.h>
 #include "pilha.h"
 
-// Estrutura de um elemento da pilha
+// Estruturas internas (visíveis apenas neste arquivo)
 typedef struct elemento {
-    void *dado;                
+    void *dado;
     struct elemento *prox;
 } Elemento;
 
-// Estrutura da pilha (ponteiro para o topo)
-typedef struct pilha {
+typedef struct {
     Elemento *topo;
-} Pilha;
+} PilhaStruct;
 
-// Inicializa a pilha
+// Inicializa a pilha: aloca a estrutura interna e define topo como NULL
 void inicializar(Pilha *p) {
-    p->topo = NULL;
+    if (!p) return;
+    PilhaStruct *ps = (PilhaStruct*) malloc(sizeof(PilhaStruct));
+    if (!ps) return;
+    ps->topo = NULL;
+    *p = (Pilha)ps;
 }
 
-// Verifica se a pilha está vazia
+// Retorna 1 se a pilha está vazia, 0 caso contrário
 int vazia(Pilha *p) {
-    return (p->topo == NULL);
+    if (!p || !*p) return 1;
+    PilhaStruct *ps = (PilhaStruct*) *p;
+    return (ps->topo == NULL);
 }
 
-// Insere um elemento (push)
-int push(Pilha *p, void *valor) {    
-    Elemento *novo = (Elemento *)malloc(sizeof(Elemento));
-    if (novo == NULL) {
-        // Falha na alocação
-        return 0;
-    }
+// Insere um elemento no topo da pilha (push)
+// Retorna 1 em caso de sucesso ou 0 se falhar
+int push(Pilha *p, void *valor) {
+    if (!p || !*p) return 0;
+    PilhaStruct *ps = (PilhaStruct*) *p;
+    Elemento *novo = (Elemento*) malloc(sizeof(Elemento));
+    if (!novo) return 0;
     novo->dado = valor;
-    novo->prox = p->topo;
-    p->topo = novo;
+    novo->prox = ps->topo;
+    ps->topo = novo;
     return 1;
 }
 
-// Remove um elemento (pop)
-int pop(Pilha *p, void *removido) { 
-    if (vazia(p)) {
-        // Pilha vazia
-        return 0;
+// Remove o elemento do topo da pilha (pop) e armazena em 'removido'
+// Retorna 1 em caso de sucesso ou 0 se a pilha estiver vazia
+int pop(Pilha *p, void *removido) {
+    if (!p || !*p) return 0;
+    PilhaStruct *ps = (PilhaStruct*) *p;
+    if (ps->topo == NULL) return 0;
+    Elemento *temp = ps->topo;
+    ps->topo = temp->prox;
+    if (removido != NULL) {
+        *(void**)removido = temp->dado;
     }
-    Elemento *temp = p->topo;
-    removido = temp->dado;
-    p->topo = temp->prox;
     free(temp);
     return 1;
 }
 
-// Libera toda a pilha
+// Libera toda a memória da pilha e zera o ponteiro
 void liberar_pilha(Pilha *p) {
-    Elemento *atual = p->topo;
-    while (atual != NULL) {
-        Elemento *temp = atual;
-        atual = atual->prox;
-        free(temp);
+    if (!p || !*p) return;
+    PilhaStruct *ps = (PilhaStruct*) *p;
+    Elemento *atual = ps->topo;
+    while (atual) {
+        Elemento *prox = atual->prox;
+        free(atual);
+        atual = prox;
     }
-    p->topo = NULL;
+    free(ps);
+    *p = NULL;
 }

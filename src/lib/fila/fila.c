@@ -2,70 +2,59 @@
 #include <stdlib.h>
 #include "fila.h"
 
-typedef struct elemento{
-    void *dado;                    
-    struct elemento *prox;
-}Elemento;
+// Estrutura interna (privada, visível só neste arquivo)
+typedef struct no {
+    void* dado;
+    struct no* prox;
+} No;
 
-typedef struct fila
-{
-  Elemento *inicio;
-  Elemento *final;
-}Fila;
+typedef struct {
+    No* inicio;
+    No* fim;
+} FilaStruct;
 
-// Inicializa a fila, definindo início e final como NULL
-Fila *iniciar_fila(){
-    Fila *f = (Fila *)malloc(sizeof(Fila));
-    f->final = NULL;
+Fila iniciar_fila() {
+    FilaStruct* f = malloc(sizeof(FilaStruct));
     f->inicio = NULL;
+    f->fim = NULL;
+    return f;
 }
 
-// Adiciona um elemento ao final da fila
-void adicionar_na_fila(Fila *fila, void *dado){ 
-    Elemento *temp = (Elemento *)malloc(sizeof(Elemento));
-    if(temp == NULL){
-        exit(1); // Encerra o programa se não houver memória
-    }
-    temp->dado = dado;
-    temp->prox = NULL;
+void adicionar_na_fila(Fila fila, void* dado) {
+    FilaStruct* f = (FilaStruct*)fila;
+    No* novo = malloc(sizeof(No));
+    novo->dado = dado;
+    novo->prox = NULL;
 
-    if(fila->final == NULL && fila->inicio == NULL){
-        // Se a fila está vazia, o novo elemento é início e final
-        fila->inicio = temp;
-        fila->final = temp;
-    }else{
-        // Caso contrário, adiciona ao final
-        fila->final->prox = temp;
-        fila->final = temp;
+    if (f->fim == NULL) {
+        f->inicio = novo;
+    } else {
+        f->fim->prox = novo;
     }
+    f->fim = novo;
 }
 
-// Libera todos os elementos da fila e imprime seus valores
-void limpar_fila(Fila *f){ // Função de impressão genérica
-    Elemento *atual = f->inicio;
-    while (atual != NULL) {
-        Elemento *temp = atual;
-        atual = atual->prox;
-        free(temp);
-    }
-    f->final = NULL;
-    f->inicio = NULL;
-}
+void remover_da_fila(Fila fila, void* removido) {
+    FilaStruct* f = (FilaStruct*)fila;
+    if (f->inicio == NULL) return;
 
+    No* temp = f->inicio;
+    f->inicio = temp->prox;
+    if (f->inicio == NULL) f->fim = NULL;
 
-// Remove o primeiro elemento da fila (dequeue) e retorna seu valor em 'removido'
-void retirar_da_fila(Fila *fila, void *removido) {
-    if (fila->inicio == NULL) {
-        // Fila vazia, não remove nada
-        return;
-    }
-    Elemento *temp = fila->inicio;
-    removido = temp->dado;
-    fila->inicio = temp->prox;
-    if (fila->inicio == NULL) {
-        // Se a fila ficou vazia, atualiza o final também
-        fila->final = NULL;
-    }
+    if (removido != NULL)
+        *(void**)removido = temp->dado;
+
     free(temp);
-    return;
+}
+
+void destruir_fila(Fila fila) {
+    FilaStruct* f = (FilaStruct*)fila;
+    No* atual = f->inicio;
+    while (atual != NULL) {
+        No* prox = atual->prox;
+        free(atual);
+        atual = prox;
+    }
+    free(f);
 }

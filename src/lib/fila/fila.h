@@ -12,18 +12,18 @@ typedef void *Fila;
  * @brief Inicializa a fila, alocando a estrutura interna e definindo o início e fim como vazios
  * @param fila ponteiro para a fila
  */
-Fila *iniciar_fila();
+Fila iniciar_fila();
 
 /**
  * @brief Adiciona um elemento ao final da fila
  * @param fila ponteiro para a fila
  * @param dado ponteiro para o elemento a ser inserido
  */
-void adicionar_na_fila(Fila *fila, void *dado);
+void adicionar_na_fila(Fila fila, void *dado);
 
 /**
  * @brief Remove o elemento do início da fila e armazena em 'removido'
- * @param fila ponteiro para a fila
+ * @param fila ponteiro para a filaS
  * @param removido ponteiro para onde o dado removido será armazenado
  */
 void retirar_da_fila(Fila *fila, void *removido);
