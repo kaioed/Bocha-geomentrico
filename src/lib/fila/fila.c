@@ -58,3 +58,11 @@ void destruir_fila(Fila fila) {
     }
     free(f);
 }
+
+int checar_fila_vazia(Fila fila) {
+    FilaStruct* f = (FilaStruct*)fila;
+    if(f->inicio == NULL) {
+        return 1;
+    }
+    return 0;
+}

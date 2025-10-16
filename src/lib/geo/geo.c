@@ -4,6 +4,8 @@
 #include "geo.h"
 
 void process_geo(FILE *geo, FILE *svg) {
+
+    printf("Processando arquivo .geo...\n");
     char comando[4];
     int i;
     double x, y, r, w, h, x1, y1, x2, y2;
@@ -15,7 +17,8 @@ void process_geo(FILE *geo, FILE *svg) {
     fprintf(svg, "<svg xmlns='http://www.w3.org/2000/svg'>\n");
 
     // Lê o arquivo linha por linha
-    while (fscanf(geo, "%s", comando) != EOF) {
+    printf("Lendo comandos do arquivo .geo...\n");
+    while (fscanf(geo, "%s", comando) != -1) {
 
         if (strcmp(comando, "c") == 0) {
             fscanf(geo, "%d %lf %lf %lf %s %s", &i, &x, &y, &r, corb, corp);
@@ -51,6 +54,7 @@ void process_geo(FILE *geo, FILE *svg) {
                     fFamily, fWeight, fSize);
         }
     }
+    printf("Arquivo .geo processado com sucesso!\n");
 
     // Fim do SVG
     fprintf(svg, "</svg>\n");

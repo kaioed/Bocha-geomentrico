@@ -9,13 +9,14 @@
 #include "lib/arg/args.h"
 #include "lib/geo/geo.h"
 #include "lib/manipilarArq/arquivo.h"
+#include "lib/qry/qry.h"
+#include "lib/disparador/disparador.h"
 
 int main(int argc, char *argv[]) {
 
     const char *entrada_geo  = obter_valor_opcao(argc, argv, "f");
     const char *saida_pasta = obter_valor_opcao(argc, argv, "o");  
     const char *entrada_qry  = obter_valor_opcao(argc, argv, "q");  
-    const char *sufixo = obter_sufixo_comando(argc, argv);
     
 
         if (entrada_geo == NULL || saida_pasta == NULL) {
@@ -29,7 +30,7 @@ int main(int argc, char *argv[]) {
     
         // Cria o nome do arquivo SVG de saída
         char svg_arqnome[512];
-        snprintf(svg_arqnome, sizeof(svg_arqnome), "%s/output.svg", saida_pasta);
+        snprintf(svg_arqnome, sizeof(svg_arqnome), "%s/arq.svg", saida_pasta);
     
         // Abre o arquivo SVG para escrita
         FILE *svg = abrirArquivo(svg_arqnome, "w");
@@ -46,5 +47,24 @@ int main(int argc, char *argv[]) {
         fecharArquivo(geo);
         fecharArquivo(svg);
     
+        if(entrada_qry != NULL){
+            // Abre o arquivo .qry
+            FILE *qry = abrirArquivo(entrada_qry, "r");
+
+            char svg_arqnome_qry[512];
+            snprintf(svg_arqnome_qry, sizeof(svg_arqnome_qry), "%s/arq-arqconst.svg", saida_pasta);
+            FILE *svg_qry = abrirArquivo(svg_arqnome_qry, "w");
+    
+            char txt_arqnome[512];
+            snprintf(txt_arqnome, sizeof(txt_arqnome), "%s/arq-arqcons.txt", saida_pasta);
+            FILE *txt = abrirArquivo(txt_arqnome, "w");
+            
+            // Processa o arquivo .qry e gera o SVG
+           // process_qry(qry, svg_qry,geo,txt);
+        
+            // Fecha os arquivos
+            fecharArquivo(qry);
+        }
+
     return 0;
 }

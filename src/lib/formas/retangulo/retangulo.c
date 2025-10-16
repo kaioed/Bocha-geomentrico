@@ -22,6 +22,10 @@ Retangulo* criar_retangulo(float x, float y, float w, float h, char* corPreenchi
     r->y = y;
     r->w = w;
     r->h = h;
+    if (corPreenchimento == NULL || corBorda == NULL) {
+        free(r);
+        return NULL;
+    }
     strncpy(r->corPreenchimento, corPreenchimento, sizeof(r->corPreenchimento)-1);
     r->corPreenchimento[sizeof(r->corPreenchimento)-1] = '\0';
     strncpy(r->corBorda, corBorda, sizeof(r->corBorda)-1);

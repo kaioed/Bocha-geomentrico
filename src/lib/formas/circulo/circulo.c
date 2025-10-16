@@ -23,6 +23,12 @@ Circulo* criar_circulo(float x, float y, float r, char* corPreenchimento, char* 
     c->x = x;
     c->y = y;
     c->r = r;
+
+    if(corPreenchimento == NULL|| corBorda == NULL) {
+        free(c);
+        return NULL;
+    }
+
     strncpy(c->corPreenchimento, corPreenchimento, sizeof(c->corPreenchimento)-1);
     c->corPreenchimento[sizeof(c->corPreenchimento)-1] = '\0';
     strncpy(c->corBorda, corBorda, sizeof(c->corBorda)-1);

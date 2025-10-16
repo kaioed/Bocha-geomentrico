@@ -22,6 +22,10 @@ Linha* criar_linha(float x1, float y1, float x2, float y2, char* cor, int id) {
     l->y1 = y1;
     l->x2 = x2;
     l->y2 = y2;
+    if (cor == NULL) {
+        free(l);
+        return NULL;
+    }
     strncpy(l->cor, cor, sizeof(l->cor)-1);
     l->cor[sizeof(l->cor)-1] = '\0';
     return (Linha*)l;

@@ -15,9 +15,6 @@ void fecharArquivo(FILE *arq) {
     fclose(arq);
 }
 
-void escreverTexto(FILE *arq, const char *texto) {
-    fprintf(arq, "%s\n", texto);
-}
 
 int lerLinha(FILE *arq, char *buffer, int tamanho) {
     if (fgets(buffer, tamanho, arq) == NULL)
