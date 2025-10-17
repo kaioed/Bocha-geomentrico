@@ -121,6 +121,10 @@ void carregar_disparador(Disparador *d, int n, char *comando)
                     pop(&d->carregadorDir->municao, &linha);
                     push(&d->disp, linha);
                 }
+                else
+                {
+                    break; // Carregador direito está vazio
+                }   
             }
         }
     }
