@@ -22,7 +22,7 @@ int lerLinha(FILE *arq, char *buffer, int tamanho) {
     return 1;
 }
 
-static char *duplicate_string(const char *s) {
+char *duplicate_string(const char *s) {
   if (s == NULL)
     return NULL;
 

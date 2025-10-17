@@ -49,4 +49,6 @@ void lerArquivoParaFila(FILE *arq, Fila *fila);
  */
 void lerArquivoParaPilha(FILE *arq, Pilha *pilha);
 
+char *duplicate_string(const char *s);
+
 #endif

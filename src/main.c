@@ -44,26 +44,31 @@ int main(int argc, char *argv[]) {
         process_geo(geo, svg);
     
         // Fecha os arquivos
-        fecharArquivo(geo);
         fecharArquivo(svg);
-    
-        if(entrada_qry != NULL){
+        
+        if (entrada_qry != NULL) {
             // Abre o arquivo .qry
             FILE *qry = abrirArquivo(entrada_qry, "r");
-
+            
             char svg_arqnome_qry[512];
             snprintf(svg_arqnome_qry, sizeof(svg_arqnome_qry), "%s/arq-arqconst.svg", saida_pasta);
             FILE *svg_qry = abrirArquivo(svg_arqnome_qry, "w");
-    
+
             char txt_arqnome[512];
             snprintf(txt_arqnome, sizeof(txt_arqnome), "%s/arq-arqcons.txt", saida_pasta);
             FILE *txt = abrirArquivo(txt_arqnome, "w");
+
+            if (qry == NULL || svg_qry == NULL || txt == NULL) {
+                fprintf(stderr, "Erro ao abrir arquivos para processamento .qry\n");
+            } else {
+                process_qry(qry, svg_qry, geo, txt);;
+            }
             
-            // Processa o arquivo .qry e gera o SVG
-           // process_qry(qry, svg_qry,geo,txt);
-        
             // Fecha os arquivos
-            fecharArquivo(qry);
+            if (geo) fecharArquivo(geo);
+            if (qry) fecharArquivo(qry);
+            if (svg_qry) fecharArquivo(svg_qry);
+            if (txt) fecharArquivo(txt);
         }
 
     return 0;
