@@ -5,6 +5,7 @@
 // Estrutura interna do retângulo
 typedef struct {
     int id;
+    char * tipo;
     float x;
     float y;
     float w;
@@ -17,6 +18,7 @@ typedef struct {
 Retangulo* criar_retangulo(float x, float y, float w, float h, char* corPreenchimento, char* corBorda, int id) {
     RetanguloStruct* r = (RetanguloStruct*) malloc(sizeof(RetanguloStruct));
     if (!r) return NULL;
+    r->tipo = "Retangulo";
     r->id = id;
     r->x = x;
     r->y = y;

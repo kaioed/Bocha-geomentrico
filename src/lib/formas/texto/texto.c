@@ -5,6 +5,7 @@
 // Estrutura interna do texto
 typedef struct {
     int id;
+    char * tipo;
     float x;
     float y;
     char cor[30];
@@ -16,6 +17,7 @@ typedef struct {
 Texto* criar_texto(float x, float y, char* cor, char* conteudo, const char* fonte, int id) {
     TextoStruct* t = (TextoStruct*) malloc(sizeof(TextoStruct));
     if (!t) return NULL;
+    t->tipo = "Texto";
     t->id = id;
     t->x = x;
     t->y = y;

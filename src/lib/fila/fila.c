@@ -34,9 +34,9 @@ void adicionar_na_fila(Fila fila, void* dado) {
     f->fim = novo;
 }
 
-void remover_da_fila(Fila fila, void* removido) {
+int remover_da_fila(Fila fila, void* removido) {
     FilaStruct* f = (FilaStruct*)fila;
-    if (f->inicio == NULL) return;
+    if (f->inicio == NULL) return 0; // fila vazia
 
     No* temp = f->inicio;
     f->inicio = temp->prox;
@@ -46,6 +46,7 @@ void remover_da_fila(Fila fila, void* removido) {
         *(void**)removido = temp->dado;
 
     free(temp);
+    return 1;
 }
 
 void destruir_fila(Fila fila) {

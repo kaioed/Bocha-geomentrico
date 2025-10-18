@@ -6,6 +6,7 @@
 // Estrutura interna da linha
 typedef struct {
     int id;
+    char * tipo;
     float x1;
     float y1;
     float x2;
@@ -17,6 +18,7 @@ typedef struct {
 Linha* criar_linha(float x1, float y1, float x2, float y2, char* cor, int id) {
     LinhaStruct* l = (LinhaStruct*) malloc(sizeof(LinhaStruct));
     if (!l) return NULL;
+    l->tipo = "Linha";
     l->id = id;
     l->x1 = x1;
     l->y1 = y1;

@@ -8,6 +8,7 @@
 
 typedef struct {
     int id;
+    char * tipo;
     float x;
     float y;
     float r;
@@ -19,6 +20,7 @@ typedef struct {
 Circulo* criar_circulo(float x, float y, float r, char* corPreenchimento, char* corBorda, int id) {
     CirculoStruct* c = (CirculoStruct*) malloc(sizeof(CirculoStruct));
     if (!c) return NULL;
+    c->tipo = "Circulo";
     c->id = id;
     c->x = x;
     c->y = y;

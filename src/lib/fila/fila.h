@@ -26,7 +26,7 @@ void adicionar_na_fila(Fila fila, void *dado);
  * @param fila ponteiro para a fila
  * @param removido ponteiro para onde o dado removido será armazenado
  */
-void remover_da_fila(Fila fila, void *removido);
+int remover_da_fila(Fila fila, void *removido);
 
 /**
  * @brief Destroi a fila e libera a memória alocada

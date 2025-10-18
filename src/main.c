@@ -26,8 +26,11 @@ int main(int argc, char *argv[]) {
     
         // Abre o arquivo .geo
         FILE *geo = abrirArquivo(entrada_geo, "r");
+        if (geo == NULL) {
+            fprintf(stderr, "Erro ao abrir o arquivo .geo: %s\n", entrada_geo);
+            return 1;
+        }
         
-    
         // Cria o nome do arquivo SVG de saída
         char svg_arqnome[512];
         snprintf(svg_arqnome, sizeof(svg_arqnome), "%s/arq.svg", saida_pasta);
@@ -41,35 +44,53 @@ int main(int argc, char *argv[]) {
         }
     
         // Processa o arquivo .geo e gera o SVG
+        printf("Processando arquivo .geo: %s\n", entrada_geo);
         process_geo(geo, svg);
+        printf("Arquivo SVG gerado: %s\n", svg_arqnome);
     
-        // Fecha os arquivos
+        // Fecha o arquivo SVG
         fecharArquivo(svg);
         
         if (entrada_qry != NULL) {
+            printf("Processando arquivo .qry: %s\n", entrada_qry);
+            
             // Abre o arquivo .qry
             FILE *qry = abrirArquivo(entrada_qry, "r");
-            
-            char svg_arqnome_qry[512];
-            snprintf(svg_arqnome_qry, sizeof(svg_arqnome_qry), "%s/arq-arqconst.svg", saida_pasta);
-            FILE *svg_qry = abrirArquivo(svg_arqnome_qry, "w");
-
-            char txt_arqnome[512];
-            snprintf(txt_arqnome, sizeof(txt_arqnome), "%s/arq-arqcons.txt", saida_pasta);
-            FILE *txt = abrirArquivo(txt_arqnome, "w");
-
-            if (qry == NULL || svg_qry == NULL || txt == NULL) {
-                fprintf(stderr, "Erro ao abrir arquivos para processamento .qry\n");
+            if (qry == NULL) {
+                fprintf(stderr, "Erro ao abrir o arquivo .qry: %s\n", entrada_qry);
             } else {
-                process_qry(qry, svg_qry, geo, txt);;
+                char svg_arqnome_qry[512];
+                snprintf(svg_arqnome_qry, sizeof(svg_arqnome_qry), "%s/arq-arqconst.svg", saida_pasta);
+                FILE *svg_qry = abrirArquivo(svg_arqnome_qry, "w");
+
+                char txt_arqnome[512];
+                snprintf(txt_arqnome, sizeof(txt_arqnome), "%s/arq-arqcons.txt", saida_pasta);
+                FILE *txt = abrirArquivo(txt_arqnome, "w");
+
+                if (svg_qry == NULL || txt == NULL) {
+                    fprintf(stderr, "Erro ao criar arquivos de saída para processamento .qry\n");
+                    if (svg_qry == NULL) fprintf(stderr, "  - Erro ao criar: %s\n", svg_arqnome_qry);
+                    if (txt == NULL) fprintf(stderr, "  - Erro ao criar: %s\n", txt_arqnome);
+                    
+                    // Fecha arquivos que foram abertos com sucesso
+                    if (svg_qry) fecharArquivo(svg_qry);
+                    if (txt) fecharArquivo(txt);
+                } else {
+                    printf("Processando comandos .qry...\n");
+                    // Processa o arquivo .qry com os parâmetros na ordem correta
+                    process_qry(qry, svg_qry, geo, txt);
+                    printf("Processamento .qry concluído.\n");
+                }
+                
+                // Fecha os arquivos
+                fecharArquivo(qry);
+                if (svg_qry) fecharArquivo(svg_qry);
+                if (txt) fecharArquivo(txt);
             }
-            
-            // Fecha os arquivos
-            if (geo) fecharArquivo(geo);
-            if (qry) fecharArquivo(qry);
-            if (svg_qry) fecharArquivo(svg_qry);
-            if (txt) fecharArquivo(txt);
         }
+        
+        // Fecha o arquivo geo (apenas uma vez)
+        fecharArquivo(geo);
 
     return 0;
 }
