@@ -83,4 +83,19 @@ const char* get_corBorda_retangulo(const Retangulo* r);
  * @return ponteiro para string da cor da borda
  */
 
+/**
+ * @brief Define a cor de preenchimento do retângulo.
+ * @param r Ponteiro para o retângulo.
+ * @param cor Nova cor de preenchimento.
+ */
+void set_corPreenchimento_retangulo(Retangulo* r, const char* cor);
+
+/**
+ * @brief Define a cor da borda do retângulo.
+ * @param r Ponteiro para o retângulo.
+ * @param cor Nova cor da borda.
+ */
+void set_corBorda_retangulo(Retangulo* r, const char* cor);
+
+
 #endif

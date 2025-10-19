@@ -87,3 +87,19 @@ const char* get_corBorda_retangulo(const Retangulo* r) {
     const RetanguloStruct* ret = (const RetanguloStruct*)r;
     return ret->corBorda;
 }
+
+void set_corPreenchimento_retangulo(Retangulo* r, const char* corPreenchimento) {
+    RetanguloStruct* ret = (RetanguloStruct*)r;
+    if (corPreenchimento) {
+        strncpy(ret->corPreenchimento, corPreenchimento, sizeof(ret->corPreenchimento)-1);
+        ret->corPreenchimento[sizeof(ret->corPreenchimento)-1] = '\0';
+    }
+}
+
+void set_corBorda_retangulo(Retangulo* r, const char* corBorda) {
+    RetanguloStruct* ret = (RetanguloStruct*)r;
+    if (corBorda) {
+        strncpy(ret->corBorda, corBorda, sizeof(ret->corBorda)-1);
+        ret->corBorda[sizeof(ret->corBorda)-1] = '\0';
+    }
+}

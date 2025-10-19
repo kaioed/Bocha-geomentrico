@@ -46,8 +46,7 @@ float get_x(const Circulo* c);
   * @param c ponteiro para o círculo
   * @return coordenada x do centro do círculo
   */float get_y(const Circulo* c);
- /**    
-  * @brief Retorna a coordenada y do centro do círculo
+ /** * @brief Retorna a coordenada y do centro do círculo
   * @param c ponteiro para o círculo
   * @return coordenada y do centro do círculo
   */    
@@ -72,5 +71,19 @@ const char* get_corPreenchimento_circulo(const Circulo* c);
  * @return ponteiro para string da cor da borda
  */
 const char* get_corBorda_circulo(const Circulo* c);
+
+/**
+ * @brief Define a cor de preenchimento do círculo.
+ * @param c Ponteiro para o círculo.
+ * @param cor Nova cor de preenchimento.
+ */
+void set_corPreenchimento_circulo(Circulo* c, const char* cor);
+
+/**
+ * @brief Define a cor da borda do círculo.
+ * @param c Ponteiro para o círculo.
+ * @param cor Nova cor da borda.
+ */
+void set_corBorda_circulo(Circulo* c, const char* cor);
 
 #endif

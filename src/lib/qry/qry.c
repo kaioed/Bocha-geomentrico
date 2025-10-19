@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
+#include <stdbool.h>
 #include "qry.h"
 #include "../manipilarArq/arquivo.h"
 #include "../disparador/disparador.h"
@@ -9,6 +11,24 @@
 #include "../formas/linha/linha.h"
 #include "../formas/texto/texto.h"
 #include "../fila/fila.h"
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+typedef struct {
+    int id_original;
+    TipoForma tipo;
+    void* dados_forma;
+    bool foi_destruida;
+    bool foi_clonada;
+    float x_centro, y_centro;
+} FormaStruct;
+
+typedef struct {
+    FormaStruct** formas;
+    int nFormas;
+    int capacidade;
+} ArenaStruct;
 
 // Helper: safe realloc wrapper
 static void *safe_realloc(void *ptr, size_t newSize) {
@@ -224,94 +244,227 @@ void calcular_sobreps(Texto** textos, int nTextos, FILE *log) {
     }
 }
 
+int arena_get_nFormas(Arena a) {
+    return ((ArenaStruct*)a)->nFormas;
+}
+
+Forma arena_get_forma(Arena a, int index) {
+    if (index < 0 || index >= ((ArenaStruct*)a)->nFormas) return NULL;
+    return ((ArenaStruct*)a)->formas[index];
+}
+
+int forma_get_id(Forma f) { return ((FormaStruct*)f)->id_original; }
+TipoForma forma_get_tipo(Forma f) { return ((FormaStruct*)f)->tipo; }
+void* forma_get_dados(Forma f) { return ((FormaStruct*)f)->dados_forma; }
+bool forma_foi_destruida(Forma f) { return ((FormaStruct*)f)->foi_destruida; }
+float forma_get_x_centro(Forma f) { return ((FormaStruct*)f)->x_centro; }
+float forma_get_y_centro(Forma f) { return ((FormaStruct*)f)->y_centro; }
+void forma_set_destruida(Forma f, bool status) { ((FormaStruct*)f)->foi_destruida = status; }
+
 
 // =======================================================================
-// FUNÇÃO PROCESS_QRY CORRIGIDA
+// SEÇÃO DE FUNÇÕES AUXILIARES PARA A LÓGICA DO JOGO (calc)
 // =======================================================================
+
+// --- Funções de Colisão ---
+bool circulo_colide_circulo(Circulo* c1, Circulo* c2) {
+    float dist_x = get_x(c1) - get_x(c2);
+    float dist_y = get_y(c1) - get_y(c2);
+    float dist_squared = dist_x * dist_x + dist_y * dist_y;
+    float raios_sum = get_raio(c1) + get_raio(c2);
+    return dist_squared <= raios_sum * raios_sum;
+}
+
+bool retangulo_colide_retangulo(Retangulo* r1, Retangulo* r2) {
+    return (get_x_retangulo(r1) < get_x_retangulo(r2) + get_largura(r2) &&
+            get_x_retangulo(r1) + get_largura(r1) > get_x_retangulo(r2) &&
+            get_y_retangulo(r1) < get_y_retangulo(r2) + get_altura(r2) &&
+            get_y_retangulo(r1) + get_altura(r1) > get_y_retangulo(r2));
+}
+
+bool circulo_colide_retangulo(Circulo* c, Retangulo* r) {
+    float cx = get_x(c);
+    float cy = get_y(c);
+    float rx = get_x_retangulo(r);
+    float ry = get_y_retangulo(r);
+    float rw = get_largura(r);
+    float rh = get_altura(r);
+
+    float closestX = (cx < rx) ? rx : (cx > rx + rw) ? rx + rw : cx;
+    float closestY = (cy < ry) ? ry : (cy > ry + rh) ? ry + rh : cy;
+    float dx = cx - closestX;
+    float dy = cy - closestY;
+    return (dx * dx + dy * dy) <= (get_raio(c) * get_raio(c));
+}
+
+// --- Gerenciamento da Arena ---
+Arena criar_arena() {
+    ArenaStruct* a = malloc(sizeof(ArenaStruct));
+    a->capacidade = 16;
+    a->nFormas = 0;
+    a->formas = malloc(a->capacidade * sizeof(FormaStruct*));
+    return a;
+}
+
+void arena_adicionar_forma(Arena a, Forma f) {
+    ArenaStruct* arena = (ArenaStruct*)a;
+    if (arena->nFormas >= arena->capacidade) {
+        arena->capacidade *= 2;
+        arena->formas = realloc(arena->formas, arena->capacidade * sizeof(FormaStruct*));
+    }
+    arena->formas[arena->nFormas++] = f;
+}
+
+void destruir_arena(Arena a) {
+    ArenaStruct* arena = (ArenaStruct*)a;
+    if (!arena) return;
+    for (int i = 0; i < arena->nFormas; i++) {
+        FormaStruct* forma = arena->formas[i];
+        if (forma->foi_clonada) {
+            switch(forma->tipo) {
+                case TIPO_CIRCULO:   liberar_circulo(forma->dados_forma);   break;
+                case TIPO_RETANGULO: liberar_retangulo(forma->dados_forma); break;
+                default: break;
+            }
+        }
+        free(forma);
+    }
+    free(arena->formas);
+    free(arena);
+}
+
+// --- Funções Genéricas para Formas ---
+bool formas_colidem(Forma f1, Forma f2) {
+    TipoForma tipo1 = forma_get_tipo(f1);
+    TipoForma tipo2 = forma_get_tipo(f2);
+    void* dados1 = forma_get_dados(f1);
+    void* dados2 = forma_get_dados(f2);
+
+    if (tipo1 == TIPO_CIRCULO && tipo2 == TIPO_CIRCULO)
+        return circulo_colide_circulo(dados1, dados2);
+    if (tipo1 == TIPO_RETANGULO && tipo2 == TIPO_RETANGULO)
+        return retangulo_colide_retangulo(dados1, dados2);
+    if (tipo1 == TIPO_CIRCULO && tipo2 == TIPO_RETANGULO)
+        return circulo_colide_retangulo(dados1, dados2);
+    if (tipo1 == TIPO_RETANGULO && tipo2 == TIPO_CIRCULO)
+        return circulo_colide_retangulo(dados2, dados1);
+    return false;
+}
+
+float forma_get_area(Forma f) {
+    if (!f || !forma_get_dados(f)) return 0.0f;
+    switch (forma_get_tipo(f)) {
+        case TIPO_CIRCULO:   return area_circulo(forma_get_dados(f));
+        case TIPO_RETANGULO: return area_retangulo(forma_get_dados(f));
+        default:             return 0.0f;
+    }
+}
+
+Forma clonar_forma(Forma original_f, int novo_id) {
+    FormaStruct* original = (FormaStruct*) original_f;
+    FormaStruct* clone = malloc(sizeof(FormaStruct));
+    clone->tipo = original->tipo;
+    clone->foi_destruida = false;
+    clone->foi_clonada = true;
+    clone->x_centro = original->x_centro;
+    clone->y_centro = original->y_centro;
+    clone->id_original = novo_id;
+
+    switch(original->tipo) {
+        case TIPO_CIRCULO: {
+            Circulo* orig_c = (Circulo*)original->dados_forma;
+            clone->dados_forma = criar_circulo(get_x(orig_c), get_y(orig_c), get_raio(orig_c),
+                                             (char*)get_corPreenchimento_circulo(orig_c), (char*)get_corBorda_circulo(orig_c), novo_id);
+            break;
+        }
+        case TIPO_RETANGULO: {
+            Retangulo* orig_r = (Retangulo*)original->dados_forma;
+            clone->dados_forma = criar_retangulo(get_x_retangulo(orig_r), get_y_retangulo(orig_r), get_largura(orig_r), get_altura(orig_r),
+                                               (char*)get_corPreenchimento_retangulo(orig_r), (char*)get_corBorda_retangulo(orig_r), novo_id);
+            break;
+        }
+        default:
+            free(clone);
+            return NULL;
+    }
+    return clone;
+}
+
 void process_qry(FILE *qry, FILE *svg, FILE *geo, FILE *txt)
 {
     // Início do SVG
     fprintf(svg, "<svg xmlns='http://www.w3.org/2000/svg'>\n");
 
-    Disparador **d = NULL;
+   Disparador **d = NULL;
     Carregador **c = NULL;
     int id, n, disp_conter = 0, car_conter = 0, i, k, j;
     float x_disp, y_disp;
     char comando[64];
-    Circulo** circulo = NULL;
-    int nCirculos = 0;
-    Retangulo** retangulos = NULL;
-    int nRetangulos = 0;
-    Linha** linhas = NULL;
-    int nLinhas = 0;
-    Texto** textos = NULL;
-    int nTextos = 0;
-    Fila ordem;
+    
+    Circulo** circulos_originais = NULL;     int nCirculos = 0;
+    Retangulo** retangulos_originais = NULL; int nRetangulos = 0;
+    Linha** linhas_originais = NULL;         int nLinhas = 0;
+    Texto** textos_originais = NULL;         int nTextos = 0;
+    Fila ordem_carregamento;
 
-    ordem = ler_geo_armazenar(geo, &circulo, &nCirculos, &retangulos, &nRetangulos, &linhas, &nLinhas, &textos, &nTextos);
+    Arena arena = criar_arena();
+    int proximo_id_clone = 10000;
 
-    // =======================================================================
-    // INÍCIO DO CÓDIGO ADICIONADO: Desenhar todas as formas lidas do .geo
-    // =======================================================================
+    ordem_carregamento = ler_geo_armazenar(geo, &circulos_originais, &nCirculos, &retangulos_originais, &nRetangulos, &linhas_originais, &nLinhas, &textos_originais, &nTextos);
+
 
     fprintf(svg, "\n");
 
     // Desenha todos os círculos
     for (i = 0; i < nCirculos; i++) {
-        if (circulo[i]) {
+        if (circulos_originais[i]) {
             // NOTA: Assumi que existe uma função get_corPreenchimento_circulo. Se o nome for outro, ajuste-o.
             fprintf(svg, "<circle cx='%.1f' cy='%.1f' r='%.1f' stroke='%s' fill='%s' />\n",
-                    get_x(circulo[i]),
-                    get_y(circulo[i]),
-                    get_raio(circulo[i]),
-                    get_corBorda_circulo(circulo[i]),
-                    get_corPreenchimento_circulo(circulo[i])); 
+                    get_x(circulos_originais[i]),
+                    get_y(circulos_originais[i]),
+                    get_raio(circulos_originais[i]),
+                    get_corBorda_circulo(circulos_originais[i]),
+                    get_corPreenchimento_circulo(circulos_originais[i])); 
         }
     }
 
     // Desenha todos os retângulos
     for (i = 0; i < nRetangulos; i++) {
-        if (retangulos[i]) {
-            // NOTA: Assumi que existe uma função get_corPreenchimento_retangulo. Se o nome for outro, ajuste-o.
+        if (retangulos_originais[i]) {
             fprintf(svg, "<rect x='%.1f' y='%.1f' width='%.1f' height='%.1f' stroke='%s' fill='%s' />\n",
-                    get_x_retangulo(retangulos[i]),
-                    get_y_retangulo(retangulos[i]),
-                    get_largura(retangulos[i]),
-                    get_altura(retangulos[i]),
-                    get_corBorda_retangulo(retangulos[i]),
-                    get_corPreenchimento_retangulo(retangulos[i]));
+                    get_x_retangulo(retangulos_originais[i]),
+                    get_y_retangulo(retangulos_originais[i]),
+                    get_largura(retangulos_originais[i]),
+                    get_altura(retangulos_originais[i]),
+                    get_corBorda_retangulo(retangulos_originais[i]),
+                    get_corPreenchimento_retangulo(retangulos_originais[i]));
         }
     }
 
     // Desenha todas as linhas
     for (i = 0; i < nLinhas; i++) {
-        if (linhas[i]) {
+        if (linhas_originais[i]) {
             fprintf(svg, "<line x1='%.1f' y1='%.1f' x2='%.1f' y2='%.1f' stroke='%s' stroke-width='2' />\n",
-                    get_x1_linha(linhas[i]),
-                    get_y1_linha(linhas[i]),
-                    get_x2_linha(linhas[i]),
-                    get_y2_linha(linhas[i]),
-                    get_cor_linha(linhas[i]));
+                    get_x1_linha(linhas_originais[i]),
+                    get_y1_linha(linhas_originais[i]),
+                    get_x2_linha(linhas_originais[i]),  
+                    get_y2_linha(linhas_originais[i]),
+                    get_cor_linha(linhas_originais[i]));
         }
     }
 
     // Desenha todos os textos
     for (i = 0; i < nTextos; i++) {
-        if (textos[i]) {
+        if (textos_originais[i]) {
             fprintf(svg, "<text x='%.1f' y='%.1f' fill='%s' >%s</text>\n",
-                    get_x_texto(textos[i]),
-                    get_y_texto(textos[i]),
-                    get_cor_texto(textos[i]),
-                    get_conteudo_texto(textos[i]));
+                    get_x_texto(textos_originais[i]),
+                    get_y_texto(textos_originais[i]),
+                    get_cor_texto(textos_originais[i]),
+                    get_conteudo_texto(textos_originais[i]));
         }
     }
 
     fprintf(svg, "\n\n");
-
-    // =======================================================================
-    // FIM DO CÓDIGO ADICIONADO
-    // =======================================================================
-
 
     while (fscanf(qry, "%63s", comando) == 1)
     {
@@ -340,7 +493,7 @@ void process_qry(FILE *qry, FILE *svg, FILE *geo, FILE *txt)
                     tmpc[car_conter] = nc;
                     c = tmpc;
                     car_conter++;
-                    carregar_carregador(ordem, c[car_conter - 1], n,txt);
+                    carregar_carregador( ordem_carregamento, c[car_conter - 1], n,txt);
                 } else {
                     carregador_destruir(nc);
                 }
@@ -443,37 +596,83 @@ void process_qry(FILE *qry, FILE *svg, FILE *geo, FILE *txt)
         }
         else if (strcmp(comando, "calc") == 0)
         {
-            if (nTextos > 0) {
-                calcular_sobreps(textos, nTextos, txt);
+          fprintf(txt, "\n--- Início do Processamento de Colisões (calc) ---\n");
+            double area_esmagada_total = 0.0;
+            int formas_no_inicio_rodada = arena_get_nFormas(arena);
+
+            for (i = 0; i < formas_no_inicio_rodada; i++) {
+                for (j = i + 1; j < formas_no_inicio_rodada; j++) {
+                    Forma f_i = arena_get_forma(arena, i);
+                    Forma f_j = arena_get_forma(arena, j);
+
+                    if (forma_foi_destruida(f_i) || forma_foi_destruida(f_j)) continue;
+
+                    if (formas_colidem(f_i, f_j)) {
+                        float area_i = forma_get_area(f_i);
+                        float area_j = forma_get_area(f_j);
+
+                        fprintf(txt, "Colisão: ID %d (área %.2f) vs ID %d (área %.2f)\n", forma_get_id(f_i), area_i, forma_get_id(f_j), area_j);
+
+                        if (area_i > area_j) {
+                            forma_set_destruida(f_j, true);
+                            area_esmagada_total += area_j;
+                            fprintf(txt, "  -> ID %d esmagou ID %d.\n", forma_get_id(f_i), forma_get_id(f_j));
+                        } else { 
+                            forma_set_destruida(f_i, true);
+                            area_esmagada_total += area_i;
+                            fprintf(txt, "  -> ID %d esmagou ID %d.\n", forma_get_id(f_j), forma_get_id(f_i));
+
+                            Forma clone = clonar_forma(f_i, proximo_id_clone++);
+                            
+                            if (forma_get_tipo(clone) == TIPO_CIRCULO) {
+                                set_corBorda_circulo(forma_get_dados(clone), get_corBorda_circulo(forma_get_dados(f_j)));
+                                set_corPreenchimento_circulo(forma_get_dados(clone), get_corPreenchimento_circulo(forma_get_dados(f_j)));
+                            } else if (forma_get_tipo(clone) == TIPO_RETANGULO) {
+                                set_corBorda_retangulo(forma_get_dados(clone), get_corBorda_retangulo(forma_get_dados(f_j)));
+                                set_corPreenchimento_retangulo(forma_get_dados(clone), get_corPreenchimento_retangulo(forma_get_dados(f_j)));
+                            }
+                            arena_adicionar_forma(arena, clone);
+                            fprintf(txt, "  -> ID %d foi clonado (novo ID %d) com as cores de ID %d.\n", forma_get_id(f_i), forma_get_id(clone), forma_get_id(f_j));
+                        }
+                    }
+                }
             }
-            if (txt) {
-                fprintf(txt, "Processamento de sobreposições concluído.\n");
+            fprintf(txt, "Área total esmagada: %.2f\n", round(area_esmagada_total));
+            fprintf(txt, "--- Fim do Processamento de Colisões ---\n");
+
+            fprintf(svg, "\n\n");
+            for (i = 0; i < arena_get_nFormas(arena); i++) {
+                Forma f = arena_get_forma(arena, i);
+                if (forma_foi_destruida(f)) {
+                    fprintf(svg, "<text x='%.1f' y='%.1f' fill='red' font-size='20' text-anchor='middle' dominant-baseline='central'>*</text>\n",
+                            forma_get_x_centro(f), forma_get_y_centro(f));
+                }
             }
         }
-    }
+        }
 
     // Limpeza de memória
     for (i = 0; i < disp_conter; i++) destruir_disparador(d[i]);
     free(d);
-    
+        
     for (i = 0; i < car_conter; i++) carregador_destruir(c[i]);
     free(c);
     
     // Libera formas (A fila não tem posse dos ponteiros, então eles devem ser liberados aqui)
-    for (i = 0; i < nCirculos; i++) liberar_circulo(circulo[i]);
-    free(circulo);
+    for (i = 0; i < nCirculos; i++) liberar_circulo(circulos_originais[i]);
+    free(circulos_originais);
     
-    for (i = 0; i < nRetangulos; i++) liberar_retangulo(retangulos[i]);
-    free(retangulos);
+    for (i = 0; i < nRetangulos; i++) liberar_retangulo(retangulos_originais[i]);
+    free(retangulos_originais);
     
-    for (i = 0; i < nLinhas; i++) liberar_linha(linhas[i]);
-    free(linhas);
+    for (i = 0; i < nLinhas; i++) liberar_linha(linhas_originais[i]);
+    free(linhas_originais);
     
-    for (i = 0; i < nTextos; i++) liberar_texto(textos[i]);
-    free(textos);
+    for (i = 0; i < nTextos; i++) liberar_texto(textos_originais[i]);
+    free(textos_originais);
     
-    if (ordem) {
-        destruir_fila(ordem);
+    if (ordem_carregamento) {
+        destruir_fila(ordem_carregamento);
     }
 
     // Fim do SVG

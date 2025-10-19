@@ -84,3 +84,19 @@ const char* get_corBorda_circulo(const Circulo* c) {
     const CirculoStruct* circ = (const CirculoStruct*)c;
     return circ->corBorda;
 }
+
+void set_corPreenchimento_circulo(Circulo* c, const char* corPreenchimento) {
+    CirculoStruct* circ = (CirculoStruct*)c;
+    if (circ && corPreenchimento) {
+        strncpy(circ->corPreenchimento, corPreenchimento, sizeof(circ->corPreenchimento)-1);
+        circ->corPreenchimento[sizeof(circ->corPreenchimento)-1] = '\0';
+    }
+}
+
+void set_corBorda_circulo(Circulo* c, const char* corBorda) {
+    CirculoStruct* circ = (CirculoStruct*)c;
+    if (circ && corBorda) {
+        strncpy(circ->corBorda, corBorda, sizeof(circ->corBorda)-1);
+        circ->corBorda[sizeof(circ->corBorda)-1] = '\0';
+    }
+}

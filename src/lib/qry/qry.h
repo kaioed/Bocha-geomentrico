@@ -2,21 +2,36 @@
 #define QRY_H
 
 #include <stdio.h>
+#include <stdbool.h>
 #include "../fila/fila.h"
 #include "../formas/texto/texto.h"
 
+// Tipos opacos para esconder a implementação da struct
+typedef void *Forma;
+typedef void *Arena;
+
+// Enum para identificar o tipo da forma de maneira segura
+typedef enum {
+    TIPO_CIRCULO,
+    TIPO_RETANGULO,
+    TIPO_LINHA,
+    TIPO_TEXTO
+} TipoForma;
+
 /**
- * @brief Processa os comandos em uma fila gerada a partir de um .qry e escreve em um SVG
- * @param qry ponteiro para o arquivo .qry (pode ser NULL se a fila já estiver preenchida)
- * @param svg ponteiro para o arquivo SVG de saída
+ * @brief Processa os comandos de um arquivo .qry, manipula as formas na arena e gera saídas.
+ * @param qry Ponteiro para o arquivo .qry.
+ * @param svg Ponteiro para o arquivo SVG de saída.
+ * @param geo Ponteiro para o arquivo .geo de entrada.
+ * @param txt Ponteiro para o arquivo de texto de saída.
  */
 void process_qry(FILE *qry, FILE *svg, FILE *geo, FILE *txt);
 
 /**
- * @brief Calcula sobreposições entre textos baseado na convenção de segmentos horizontais
- * @param textos array de ponteiros para textos
- * @param nTextos número de textos no array
- * @param log ponteiro para arquivo de log (pode ser NULL)
+ * @brief Calcula sobreposições entre textos (função auxiliar original).
+ * @param textos Array de ponteiros para textos.
+ * @param nTextos Número de textos no array.
+ * @param log Ponteiro para o arquivo de log.
  */
 void calcular_sobreps(Texto** textos, int nTextos, FILE *log);
 
