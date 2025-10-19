@@ -519,8 +519,14 @@ void process_qry(FILE *qry, FILE *svg, FILE *geo, FILE *txt)
                     Carregador *cd = NULL;
                     for (j = 0; j < car_conter; j++) {
                         int cid = carregador_get_id(c[j]);
-                        if (cid == n) ce = c[j];
-                        if (cid == k) cd = c[j];
+                        if (cid == n){
+                             ce = c[j];
+                             c[j] = NULL; // Evita múltiplas associações
+                            }
+                        if (cid == k){
+                                cd = c[j];
+                                c[j] = NULL; // Evita múltiplas associações
+                        } 
                     }
                     if (ce) disparador_set_carregador_esq(d[i], ce);
                     if (cd) disparador_set_carregador_dir(d[i], cd);
