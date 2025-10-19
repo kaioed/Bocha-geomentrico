@@ -122,23 +122,37 @@ Fila ler_geo_armazenar(FILE *geo,
                 }
             }
         } else if (type == 't') {
-            int id; float x, y; char corB[128], corP[128], anchor[16];
+          int id;
+            float x, y;
+            char corB[128], corP[128], anchor_char;
             int consumed = 0;
-            int matched = sscanf(rest, " %d %f %f %127s %127s %15s %n", &id, &x, &y, corB, corP, anchor, &consumed);
+
+            // Lê os parâmetros fixos e a âncora como um caractere
+            int matched = sscanf(rest, " %d %f %f %127s %127s %c %n", &id, &x, &y, corB, corP, &anchor_char, &consumed);
+
             if (matched >= 6 && textos) {
-                char *texto = rest + consumed;
-                while (*texto == ' ' || *texto == '\t') texto++;
-                size_t len = strlen(texto);
-                while (len > 0 && (texto[len-1] == '\n' || texto[len-1] == '\r')) texto[--len] = '\0';
-                if (!texto) texto = "";
-                Texto* obj = criar_texto(x, y, corP, texto, NULL, id);
+                // O resto da string é o conteúdo do texto
+                char *texto_conteudo = rest + consumed;
+                
+                // Remove espaços em branco no início do conteúdo
+                while (*texto_conteudo == ' ' || *texto_conteudo == '\t') {
+                    texto_conteudo++;
+                }
+
+                // Remove quebras de linha no final do conteúdo
+                size_t len = strlen(texto_conteudo);
+                while (len > 0 && (texto_conteudo[len - 1] == '\n' || texto_conteudo[len - 1] == '\r')) {
+                    texto_conteudo[--len] = '\0';
+                }
+
+                Texto* obj = criar_texto(x, y, corP, texto_conteudo, NULL, id);
                 if (obj) {
-                    Texto **arr = safe_realloc(*textos, ((*nTextos)+1) * sizeof(Texto*));
+                    Texto **arr = safe_realloc(*textos, ((*nTextos) + 1) * sizeof(Texto*));
                     if (arr) {
                         arr[*nTextos] = obj;
                         *textos = arr;
                         (*nTextos)++;
-                        adicionar_na_fila(f, obj); // <<-- CÓDIGO MOVIDO PARA CÁ
+                        adicionar_na_fila(f, obj);
                     } else {
                         liberar_texto(obj);
                     }
@@ -262,9 +276,6 @@ float forma_get_y_centro(Forma f) { return ((FormaStruct*)f)->y_centro; }
 void forma_set_destruida(Forma f, bool status) { ((FormaStruct*)f)->foi_destruida = status; }
 
 
-// =======================================================================
-// SEÇÃO DE FUNÇÕES AUXILIARES PARA A LÓGICA DO JOGO (calc)
-// =======================================================================
 
 // --- Funções de Colisão ---
 bool circulo_colide_circulo(Circulo* c1, Circulo* c2) {

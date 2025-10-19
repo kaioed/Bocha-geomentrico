@@ -78,6 +78,7 @@ int main(int argc, char *argv[]) {
                 } else {
                     printf("Processando comandos .qry...\n");
                     // Processa o arquivo .qry com os parâmetros na ordem correta
+                    rewind(geo);
                     process_qry(qry, svg_qry, geo, txt);
                     printf("Processamento .qry concluído.\n");
                 }
