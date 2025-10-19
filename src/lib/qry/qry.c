@@ -46,123 +46,93 @@ Fila ler_geo_armazenar(FILE *geo,
                        Texto*** textos, int *nTextos) {
     if (!geo) return NULL;
 
-    char line[1024];
+   char line[1024];
     Fila f = iniciar_fila();
 
-    // Inicializa retornos
     if (circulos) { *circulos = NULL; *nCirculos = 0; }
     if (retangulos) { *retangulos = NULL; *nRetangulos = 0; }
     if (linhas) { *linhas = NULL; *nLinhas = 0; }
     if (textos) { *textos = NULL; *nTextos = 0; }
-
     
     while (fgets(line, sizeof(line), geo) != NULL) {
-
         char *p = line;
         while (*p == ' ' || *p == '\t') p++;
         if (*p == '\0' || *p == '\n' || *p == '#') continue; 
 
-        char type = 0;
-        int offset = 0;
-        if (sscanf(p, " %c%n", &type, &offset) != 1) continue;
-        char *rest = p + offset;
+        char type = p[0];
+        char *rest = p + 1;
+        FormaStruct* forma_wrapper = NULL;
 
-        if (type == 'c') {
-            int id; float x, y, r;
-            char corB[128], corP[128];
-            int matched = sscanf(rest, " %d %f %f %f %127s %127s", &id, &x, &y, &r, corB, corP);
-            if (matched >= 6 && circulos) {
-                Circulo* obj = criar_circulo(x, y, r, corP, corB, id);
-                if (obj) {
-                    Circulo **arr = safe_realloc(*circulos, ((*nCirculos)+1) * sizeof(Circulo*));
-                    if (arr) {
-                        arr[*nCirculos] = obj;
-                        *circulos = arr;
+        switch (type) {
+            case 'c': {
+                int id; float x, y, r; char corB[128], corP[128];
+                if (sscanf(rest, " %d %f %f %f %127s %127s", &id, &x, &y, &r, corB, corP) >= 6 && circulos) {
+                    Circulo* obj = criar_circulo(x, y, r, corP, corB, id);
+                    if (obj) {
+                        *circulos = safe_realloc(*circulos, (*nCirculos + 1) * sizeof(Circulo*));
+                        (*circulos)[*nCirculos] = obj;
                         (*nCirculos)++;
-                        adicionar_na_fila(f, obj); // <<-- CÓDIGO MOVIDO PARA CÁ
-                    } else {
-                        liberar_circulo(obj);
+                        forma_wrapper = malloc(sizeof(FormaStruct));
+                        forma_wrapper->tipo = TIPO_CIRCULO;
+                        forma_wrapper->dados_forma = obj;
                     }
                 }
+                break;
             }
-
-        } else if (type == 'r') {
-            int id; float x, y, w, h;
-            char corB[128], corP[128];
-            int matched = sscanf(rest, " %d %f %f %f %f %127s %127s", &id, &x, &y, &w, &h, corB, corP);
-            if (matched >= 7 && retangulos) {
-                Retangulo* obj = criar_retangulo(x, y, w, h, corP, corB, id);
-                if (obj) {
-                    Retangulo **arr = safe_realloc(*retangulos, ((*nRetangulos)+1) * sizeof(Retangulo*));
-                    if (arr) {
-                        arr[*nRetangulos] = obj;
-                        *retangulos = arr;
+            case 'r': {
+                int id; float x, y, w, h; char corB[128], corP[128];
+                if (sscanf(rest, " %d %f %f %f %f %127s %127s", &id, &x, &y, &w, &h, corB, corP) >= 7 && retangulos) {
+                    Retangulo* obj = criar_retangulo(x, y, w, h, corP, corB, id);
+                    if (obj) {
+                        *retangulos = safe_realloc(*retangulos, (*nRetangulos + 1) * sizeof(Retangulo*));
+                        (*retangulos)[*nRetangulos] = obj;
                         (*nRetangulos)++;
-                        adicionar_na_fila(f, obj); // <<-- CÓDIGO MOVIDO PARA CÁ
-                    } else {
-                        liberar_retangulo(obj);
+                        forma_wrapper = malloc(sizeof(FormaStruct));
+                        forma_wrapper->tipo = TIPO_RETANGULO;
+                        forma_wrapper->dados_forma = obj;
                     }
                 }
+                break;
             }
-        } else if (type == 'l') {
-            int id; float x1, y1, x2, y2; char cor[128];
-            int matched = sscanf(rest, " %d %f %f %f %f %127s", &id, &x1, &y1, &x2, &y2, cor);
-            if (matched >= 6 && linhas) {
-                Linha* obj = criar_linha(x1, y1, x2, y2, cor, id);
-                if (obj) {
-                    Linha **arr = safe_realloc(*linhas, ((*nLinhas)+1) * sizeof(Linha*));
-                    if (arr) {
-                        arr[*nLinhas] = obj;
-                        *linhas = arr;
+            case 'l': {
+                int id; float x1, y1, x2, y2; char cor[128];
+                if (sscanf(rest, " %d %f %f %f %f %127s", &id, &x1, &y1, &x2, &y2, cor) >= 6 && linhas) {
+                    Linha* obj = criar_linha(x1, y1, x2, y2, cor, id);
+                    if (obj) {
+                        *linhas = safe_realloc(*linhas, (*nLinhas + 1) * sizeof(Linha*));
+                        (*linhas)[*nLinhas] = obj;
                         (*nLinhas)++;
-                        adicionar_na_fila(f, obj); // <<-- CÓDIGO MOVIDO PARA CÁ
-                    } else {
-                        liberar_linha(obj);
+                        forma_wrapper = malloc(sizeof(FormaStruct));
+                        forma_wrapper->tipo = TIPO_LINHA;
+                        forma_wrapper->dados_forma = obj;
                     }
                 }
+                break;
             }
-        } else if (type == 't') {
-          int id;
-            float x, y;
-            char corB[128], corP[128], anchor_char;
-            int consumed = 0;
-
-            // Lê os parâmetros fixos e a âncora como um caractere
-            int matched = sscanf(rest, " %d %f %f %127s %127s %c %n", &id, &x, &y, corB, corP, &anchor_char, &consumed);
-
-            if (matched >= 6 && textos) {
-                // O resto da string é o conteúdo do texto
-                char *texto_conteudo = rest + consumed;
-                
-                // Remove espaços em branco no início do conteúdo
-                while (*texto_conteudo == ' ' || *texto_conteudo == '\t') {
-                    texto_conteudo++;
-                }
-
-                // Remove quebras de linha no final do conteúdo
-                size_t len = strlen(texto_conteudo);
-                while (len > 0 && (texto_conteudo[len - 1] == '\n' || texto_conteudo[len - 1] == '\r')) {
-                    texto_conteudo[--len] = '\0';
-                }
-
-                Texto* obj = criar_texto(x, y, corP, texto_conteudo, NULL, id);
-                if (obj) {
-                    Texto **arr = safe_realloc(*textos, ((*nTextos) + 1) * sizeof(Texto*));
-                    if (arr) {
-                        arr[*nTextos] = obj;
-                        *textos = arr;
+            case 't': {
+                int id; float x, y; char corB[128], corP[128], anchor_char; int consumed = 0;
+                if (sscanf(rest, " %d %f %f %127s %127s %c %n", &id, &x, &y, corB, corP, &anchor_char, &consumed) >= 6 && textos) {
+                    char *texto_conteudo = rest + consumed;
+                    while (*texto_conteudo == ' ' || *texto_conteudo == '\t') texto_conteudo++;
+                    size_t len = strlen(texto_conteudo);
+                    while (len > 0 && (texto_conteudo[len-1] == '\n' || texto_conteudo[len-1] == '\r')) texto_conteudo[--len] = '\0';
+                    Texto* obj = criar_texto(x, y, corP, texto_conteudo, NULL, id);
+                    if (obj) {
+                        *textos = safe_realloc(*textos, (*nTextos + 1) * sizeof(Texto*));
+                        (*textos)[*nTextos] = obj;
                         (*nTextos)++;
-                        adicionar_na_fila(f, obj);
-                    } else {
-                        liberar_texto(obj);
+                        forma_wrapper = malloc(sizeof(FormaStruct));
+                        forma_wrapper->tipo = TIPO_TEXTO;
+                        forma_wrapper->dados_forma = obj;
                     }
                 }
+                break;
             }
-        } else {
-            continue;
+        }
+        if (forma_wrapper) {
+            adicionar_na_fila(f, forma_wrapper);
         }
     }
-    
     return f;
 }
 
@@ -195,33 +165,37 @@ static int segmentos_se_sobrepoem(float x1a, float y1a, float x2a, float y2a,
     return max_x1 < min_x2;
 }
 
-static void reportar_dados_forma(void *forma, FILE *txt) {
-    if (!forma || !txt) return;
-    char *tipo = NULL;
-    // AVISO: Este método para obter o tipo da forma é instável.
-    // O ideal seria ter um campo 'tipo' na própria struct.
-    memcpy(&tipo, (char *)forma + sizeof(int), sizeof(char *));
-    
-    if (tipo && strlen(tipo) > 0) {
-        if (strcmp(tipo, "Circulo") == 0) {
-            Circulo *c = (Circulo *)forma;
-            fprintf(txt, "Círculo - ID: %d, Centro: (%.1f,%.1f), Raio: %.1f, Cor: %s\n",
-                    get_id_circulo(c), get_x(c), get_y(c), get_raio(c), get_corBorda_circulo(c));
-        } else if (strcmp(tipo, "Retangulo") == 0) {
-            Retangulo *r = (Retangulo *)forma;
-            fprintf(txt, "Retângulo - ID: %d, Posição: (%.1f,%.1f), Dimensões: %.1fx%.1f, Cor: %s\n",
-                    get_id_retangulo(r), get_x_retangulo(r), get_y_retangulo(r), 
-                    get_largura(r), get_altura(r), get_corBorda_retangulo(r));
-        } else if (strcmp(tipo, "Linha") == 0) {
-            Linha *l = (Linha *)forma;
-            fprintf(txt, "Linha - ID: %d, Pontos: (%.1f,%.1f) a (%.1f,%.1f), Cor: %s\n",
-                    get_id_linha(l), get_x1_linha(l), get_y1_linha(l), 
-                    get_x2_linha(l), get_y2_linha(l), get_cor_linha(l));
-        } else if (strcmp(tipo, "Texto") == 0) {
-            Texto *t = (Texto *)forma;
-            fprintf(txt, "Texto - ID: %d, Posição: (%.1f,%.1f), Conteúdo: \"%s\", Cor: %s\n",
-                    get_id_texto(t), get_x_texto(t), get_y_texto(t), 
-                    get_conteudo_texto(t), get_cor_texto(t));
+static void reportar_dados_forma(Forma forma_wrapper, FILE *txt) {
+    if (!forma_wrapper || !txt) return;
+
+    // Converte o ponteiro void* para o nosso tipo de invólucro seguro
+    FormaStruct* forma = (FormaStruct*) forma_wrapper;
+
+    // Usa o enum para identificar o tipo de forma segura
+    switch (forma->tipo) {
+        case TIPO_CIRCULO: {
+            Circulo *c = (Circulo *)forma->dados_forma;
+            fprintf(txt, "Circulo - ID: %d, Centro: (%.1f,%.1f), Raio: %.1f\n",
+                    get_id_circulo(c), get_x(c), get_y(c), get_raio(c));
+            break;
+        }
+        case TIPO_RETANGULO: {
+            Retangulo *r = (Retangulo *)forma->dados_forma;
+            fprintf(txt, "Retangulo - ID: %d, Posicao: (%.1f,%.1f), Dimensoes: %.1fx%.1f\n",
+                    get_id_retangulo(r), get_x_retangulo(r), get_y_retangulo(r), get_largura(r), get_altura(r));
+            break;
+        }
+        case TIPO_LINHA: {
+            Linha *l = (Linha *)forma->dados_forma;
+            fprintf(txt, "Linha - ID: %d, Pontos: (%.1f,%.1f) a (%.1f,%.1f)\n",
+                    get_id_linha(l), get_x1_linha(l), get_y1_linha(l), get_x2_linha(l), get_y2_linha(l));
+            break;
+        }
+        case TIPO_TEXTO: {
+            Texto *t = (Texto *)forma->dados_forma;
+            fprintf(txt, "Texto - ID: %d, Posicao: (%.1f,%.1f), Conteudo: \"%s\"\n",
+                    get_id_texto(t), get_x_texto(t), get_y_texto(t), get_conteudo_texto(t));
+            break;
         }
     }
 }
@@ -401,6 +375,8 @@ Forma clonar_forma(Forma original_f, int novo_id) {
     return clone;
 }
 
+
+
 void process_qry(FILE *qry, FILE *svg, FILE *geo, FILE *txt)
 {
     // Início do SVG
@@ -518,15 +494,20 @@ void process_qry(FILE *qry, FILE *svg, FILE *geo, FILE *txt)
                     Carregador *ce = NULL;
                     Carregador *cd = NULL;
                     for (j = 0; j < car_conter; j++) {
+                        // CORREÇÃO: Pula ponteiros que já foram anexados e agora são NULL.
+                        if (c[j] == NULL) {
+                            continue;
+                        }
+
                         int cid = carregador_get_id(c[j]);
-                        if (cid == n){
+                        if (cid == n) {
                              ce = c[j];
-                             c[j] = NULL; // Evita múltiplas associações
-                            }
-                        if (cid == k){
-                                cd = c[j];
-                                c[j] = NULL; // Evita múltiplas associações
-                        } 
+                             c[j] = NULL; // Transfere a posse, evitando double free
+                        }
+                        if (cid == k) {
+                            cd = c[j];
+                            c[j] = NULL; // Transfere a posse
+                        }
                     }
                     if (ce) disparador_set_carregador_esq(d[i], ce);
                     if (cd) disparador_set_carregador_dir(d[i], cd);

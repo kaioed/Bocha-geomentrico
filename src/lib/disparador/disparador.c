@@ -5,6 +5,7 @@
 #include "../pilha/pilha.h"
 #include "../manipilarArq/arquivo.h"
 #include "../fila/fila.h"
+#include "../qry/qry.h"
 
 // Estruturas internas - não expostas no header
 typedef struct CarregadorInterno {
@@ -54,65 +55,36 @@ Disparador *criar_disparador(int id, int x, int y)
     return (Disparador *)d;
 }
 
+TipoForma forma_get_tipo(Forma f);
+void* forma_get_dados(Forma f);
+int forma_get_id(Forma f);
+
 void carregar_carregador(Fila fonte, Carregador *c, int n,FILE *log)
 {
     CarregadorInterno *carreg = (CarregadorInterno *)c;
-    void *item;
-    if (!log) {
-        /* não conseguiu abrir o log: continuamos sem log */
-    }
+    if (!carreg) return;
 
     for (int i = 0; i < n; i++) {
-        if (remover_da_fila(fonte, &item)) {
-            const char *tipo = "Desconhecido";
-
-            if (item) {
-                /* 1) verifica se é uma string terminada por '\0' com caracteres imprimíveis */
-                char *s = (char *)item;
-                int is_string = 0;
-                size_t max_check = 256;
-                size_t len = 0;
-                while (len < max_check && s[len] != '\0') {
-                    unsigned char ch = (unsigned char)s[len];
-                    if (ch == '\n' || ch == '\r') { len++; continue; }
-                    if (ch < 32 || ch > 126) { break; }
-                    len++;
-                }
-                if (len > 0 && len < max_check && s[len] == '\0') {
-                    is_string = 1;
-                }
-
-                if (is_string) {
-                    tipo = "String";
-                } else {
-                    /* 2) tenta ler o ponteiro 'tipo' que, nas implementações das formas,
-                       fica logo após o campo int id. Recuperamos um char* a partir
-                       desse offset e validamos se é uma string imprimível. */
-                    char *possible_tipo = NULL;
-                    memcpy(&possible_tipo, (char *)item + sizeof(int), sizeof(char *));
-                    if (possible_tipo) {
-                        size_t lt = 0;
-                        int ok = 1;
-                        while (lt < 64 && possible_tipo[lt] != '\0') {
-                            unsigned char ch = (unsigned char)possible_tipo[lt];
-                            if (ch < 32 || ch > 126) { ok = 0; break; }
-                            lt++;
-                        }
-                        if (ok && lt > 0) {
-                            if (strncmp(possible_tipo, "Circulo", 7) == 0) tipo = "Circulo";
-                            else if (strncmp(possible_tipo, "Retangulo", 9) == 0) tipo = "Retangulo";
-                            else if (strncmp(possible_tipo, "Linha", 5) == 0) tipo = "Linha";
-                            else if (strncmp(possible_tipo, "Texto", 5) == 0) tipo = "Texto";
-                            else tipo = possible_tipo; /* texto imprimível não identificado */
-                        }
+        void *item_wrapper = NULL;
+        if (remover_da_fila(fonte, &item_wrapper)) {
+            if (item_wrapper) {
+                push(&carreg->municao, item_wrapper);
+                
+                // Lógica de Log (agora segura)
+                if (log) {
+                    Forma f = (Forma)item_wrapper;
+                    const char* tipo_str = "Desconhecido";
+                    switch(forma_get_tipo(f)) {
+                        case TIPO_CIRCULO:   tipo_str = "Circulo";   break;
+                        case TIPO_RETANGULO: tipo_str = "Retangulo"; break;
+                        case TIPO_LINHA:     tipo_str = "Linha";     break;
+                        case TIPO_TEXTO:     tipo_str = "Texto";     break;
                     }
+                    fprintf(log, "Carregador %d: inserindo forma ID %d (tipo %s)\n", carreg->id, forma_get_id(f), tipo_str);
                 }
             }
-
-            if (log) fprintf(log, "Carregador %d: inserindo tipo %s\n", carreg ? carreg->id : -1, tipo);
-            push(&carreg->municao, item);
         } else {
-            break;
+            break; 
         }
     }
 

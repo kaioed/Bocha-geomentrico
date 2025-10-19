@@ -27,12 +27,4 @@ typedef enum {
  */
 void process_qry(FILE *qry, FILE *svg, FILE *geo, FILE *txt);
 
-/**
- * @brief Calcula sobreposições entre textos (função auxiliar original).
- * @param textos Array de ponteiros para textos.
- * @param nTextos Número de textos no array.
- * @param log Ponteiro para o arquivo de log.
- */
-void calcular_sobreps(Texto** textos, int nTextos, FILE *log);
-
 #endif
