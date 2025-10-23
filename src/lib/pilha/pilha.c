@@ -30,9 +30,9 @@ int vazia(Pilha *p) {
 
 // Insere um elemento no topo da pilha (push)
 // Retorna 1 em caso de sucesso ou 0 se falhar
-int push(Pilha *p, void *valor) {
-    if (!p || !*p) return 0;
-    PilhaStruct *ps = (PilhaStruct*) *p;
+int push(Pilha p, void *valor) {
+    if (!p) return 0; // Verifica se o ponteiro da pilha é válido
+    PilhaStruct *ps = (PilhaStruct*) p; // Usa o ponteiro diretamente
     Elemento *novo = (Elemento*) malloc(sizeof(Elemento));
     if (!novo) return 0;
     novo->dado = valor;
@@ -40,6 +40,7 @@ int push(Pilha *p, void *valor) {
     ps->topo = novo;
     return 1;
 }
+
 
 // Remove o elemento do topo da pilha (pop) e armazena em 'removido'
 // Retorna 1 em caso de sucesso ou 0 se a pilha estiver vazia

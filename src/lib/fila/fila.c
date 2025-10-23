@@ -67,3 +67,22 @@ int checar_fila_vazia(Fila fila) {
     }
     return 0;
 }
+
+void duplicar_fila(Fila origem, Fila destino, void* (*clonar_dado)(void*)) {
+    FilaStruct* f_origem = (FilaStruct*)origem;
+    FilaStruct* f_destino = (FilaStruct*)destino;
+
+    No* atual = f_origem->inicio;
+    while (atual != NULL) {
+        void* dado_clonado;
+        if (clonar_dado != NULL) {
+            dado_clonado = clonar_dado(atual->dado);
+        } else {
+            // Caso não haja função de clonagem, copia o ponteiro diretamente
+            dado_clonado = atual->dado;
+        }
+
+        adicionar_na_fila(destino, dado_clonado);
+        atual = atual->prox;
+    }
+}

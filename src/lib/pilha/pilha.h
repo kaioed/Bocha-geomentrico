@@ -33,7 +33,7 @@ void liberar_pilha(Pilha *p);
  * @param valor valor inteiro a ser inserido
  * @return 1 em caso de sucesso ou 0 se a pilha estiver cheia
  */
-int push(Pilha *p, void *valor);
+int push(Pilha p, void *valor);
 
 /**
  * @brief Remove o elemento do topo da pilha (pop) e armazena em 'removido'

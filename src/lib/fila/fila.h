@@ -41,4 +41,6 @@ void destruir_fila(Fila fila);
  */ 
 int checar_fila_vazia(Fila fila);
 
+void duplicar_fila(Fila origem, Fila destino, void* (*clonar_dado)(void*));  
+
 #endif

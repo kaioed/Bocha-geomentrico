@@ -91,7 +91,7 @@ void destruir_disparador(Disparador *d);
  * @brief Destroi um carregador e libera toda a memória alocada
  * @param c ponteiro para o Carregador a ser destruído
  */
-void destruir_carregador(Carregador *c);
+void destruir_carregador(Carregador c);
 
 /**
  * @brief Define o carregador direito do disparador
@@ -133,6 +133,6 @@ void carregador_destruir(Carregador *c);
  * @param d ponteiro para o Disparador
  * @return ponteiro para a forma no topo da pilha, ou NULL se vazia
  */
-void *disparador_obter_forma_disparo(Disparador *d);
+void *disparador_disparar_forma(Disparador *d);
 
-#endif // DISPARADOR_H
+#endif

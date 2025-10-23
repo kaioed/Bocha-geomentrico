@@ -4,11 +4,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "../fila/fila.h"
-#include "../formas/texto/texto.h"
-
-// Tipos opacos para esconder a implementação da struct
-typedef void *Forma;
-typedef void *Arena;
+#include "../geo/geo.h" // Inclui para ter acesso a Ground
 
 // Enum para identificar o tipo da forma de maneira segura
 typedef enum {
@@ -18,13 +14,29 @@ typedef enum {
     TIPO_TEXTO
 } TipoForma;
 
+// ESTRUTURA DECLARADA AQUI
+// Esta struct serve como um "invólucro" genérico para qualquer forma geométrica,
+// adicionando metadados para a simulação.
+typedef struct {
+    int id_original;
+    TipoForma tipo;
+    void* dados_forma;      // Ponteiro para o círculo, retângulo, etc.
+    bool foi_destruida;
+    bool foi_clonada;
+    float x_centro, y_centro; // Posição central para anotações
+} FormaStruct;
+
+
+// Tipos opacos para esconder a implementação
+typedef void *Arena;
+
 /**
  * @brief Processa os comandos de um arquivo .qry, manipula as formas na arena e gera saídas.
  * @param qry Ponteiro para o arquivo .qry.
  * @param svg Ponteiro para o arquivo SVG de saída.
- * @param geo Ponteiro para o arquivo .geo de entrada.
+ * @param ground A estrutura que contém todas as formas lidas do .geo.
  * @param txt Ponteiro para o arquivo de texto de saída.
  */
-void process_qry(FILE *qry, FILE *svg, FILE *geo, FILE *txt);
+void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt);
 
 #endif
