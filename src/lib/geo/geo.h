@@ -3,13 +3,8 @@
 
 #include <stdio.h>
 #include "../fila/fila.h"
-#include "../pilha/pilha.h" // Adicionado
+#include "../pilha/pilha.h" 
 
-// Estrutura para manter o estado do "terreno" com todas as formas.
-typedef struct {
-    Fila todas_as_formas;      // Fila com todas as formas ativas na simulação
-    Pilha pilha_clones_para_libertar; // Pilha para gerir a memória dos clones
-} GroundStruct;
 
 typedef void* Ground;
 

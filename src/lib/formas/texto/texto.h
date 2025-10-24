@@ -4,22 +4,25 @@
 /*
  * @brief Texto é uma "forma" posicionada em (x, y), com cor, conteúdo e id.
  * Sua "área" é definida como 20.0 * número de caracteres do texto.
+ * MODIFICADO: Agora inclui corBorda, corPreenchimento e anchor, como no Projeto 1.
  */
 
 typedef void *Texto;
 
-Texto* criar_texto(float x, float y, char* cor, char* conteudo, const char* fonte, int id);
-
 /**
- * @brief Cria um texto na posição (x, y), com cor, conteúdo e id.
+ * @brief Cria um texto na posição (x, y), com cores, âncora, conteúdo e id.
  * @param id inteiro usado para identificar o texto
  * @param x posição horizontal do texto
  * @param y posição vertical do texto
- * @param cor cor do texto (ex: #000000)
+ * @param corBorda cor da borda do texto (ex: #000000)
+ * @param corPreenchimento cor de preenchimento do texto (ex: #FFFFFF)
+ * @param anchor caractere de âncora (ex: 'm', 'i', 'f')
  * @param conteudo string com o texto a ser exibido
- * @param fonte nome/família da fonte a ser usada no SVG (ex: "Arial", "Times New Roman")
+ * @param fonte nome/família da fonte (ignorado no P1, mantido para compatibilidade)
  * @return ponteiro para o texto criado
  */
+Texto* criar_texto(float x, float y, char* corBorda, char* corPreenchimento, char anchor, char* conteudo, const char* fonte, int id);
+
 
 float area_texto(const Texto* t);
 /**
@@ -56,11 +59,18 @@ const char* get_fonte_texto(const Texto* t);
 int get_id_texto(const Texto* t);
 
 /**
- * @brief Retorna a cor do texto
+ * @brief Retorna a cor de preenchimento do texto
  * @param t ponteiro para o texto
- * @return ponteiro para string da cor
+ * @return ponteiro para string da cor de preenchimento
  */
-const char* get_cor_texto(const Texto* t);
+const char* get_corPreenchimento_texto(const Texto* t);
+
+/**
+ * @brief Retorna a cor da borda do texto
+ * @param t ponteiro para o texto
+ * @return ponteiro para string da cor da borda
+ */
+const char* get_corBorda_texto(const Texto* t);
 
 /**
  * @brief Retorna o conteúdo do texto
@@ -82,5 +92,12 @@ float get_x_texto(const Texto* t);
  * @return coordenada y
  */
 float get_y_texto(const Texto* t);
+
+/**
+ * @brief Retorna o caractere de âncora do texto
+ * @param t ponteiro para o texto
+ * @return caractere de âncora
+ */
+char get_anchor_texto(const Texto* t);
 
 #endif

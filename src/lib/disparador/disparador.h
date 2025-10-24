@@ -135,4 +135,18 @@ void carregador_destruir(Carregador *c);
  */
 void *disparador_disparar_forma(Disparador *d);
 
+/**
+ * @brief Adiciona um valor à área total esmagada por este disparador.
+ * @param d Ponteiro para o Disparador.
+ * @param area Área a ser adicionada.
+ */
+void disparador_adicionar_area_esmagada(Disparador d, float area);
+
+/**
+ * @brief Obtém a área total esmagada por este disparador.
+ * @param d Ponteiro para o Disparador.
+ * @return A área total esmagada.
+ */
+float disparador_get_area_esmagada(Disparador d);
+
 #endif

@@ -4,9 +4,9 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "../fila/fila.h"
-#include "../geo/geo.h" // Inclui para ter acesso a Ground
+#include "../geo/geo.h" 
 
-// Enum para identificar o tipo da forma de maneira segura
+
 typedef enum {
     TIPO_CIRCULO,
     TIPO_RETANGULO,
@@ -14,21 +14,33 @@ typedef enum {
     TIPO_TEXTO
 } TipoForma;
 
-// ESTRUTURA DECLARADA AQUI
-// Esta struct serve como um "invólucro" genérico para qualquer forma geométrica,
-// adicionando metadados para a simulação.
-typedef struct {
-    int id_original;
-    TipoForma tipo;
-    void* dados_forma;      // Ponteiro para o círculo, retângulo, etc.
-    bool foi_destruida;
-    bool foi_clonada;
-    float x_centro, y_centro; // Posição central para anotações
-} FormaStruct;
 
+typedef void* Forma;
 
-// Tipos opacos para esconder a implementação
 typedef void *Arena;
+
+/**
+ * @brief Obtém o tipo da forma encapsulada (e.g., TIPO_CIRCULO, TIPO_RETANGULO).
+ * @param forma Ponteiro opaco (FormaStruct) para a estrutura da forma.
+ * @return O enumerador TipoForma que representa o tipo da forma.
+ */
+TipoForma forma_get_tipo(void* forma);
+
+/**
+ * @brief Obtém o ID original da forma contida na estrutura (FormaStruct).
+ * Este ID pode ser o ID lido do .geo ou um ID de clone.
+ * @param forma Ponteiro opaco (FormaStruct) para a estrutura da forma.
+ * @return O ID inteiro da forma.
+ */
+int forma_get_id_original(void* forma);
+
+
+/**
+ * @brief Define o status de destruição da forma.
+ * @param forma Ponteiro opaco (FormaStruct) para a estrutura da forma.
+ * @param status Booleano indicando se a forma foi destruída (true) ou não (false).
+ */
+void forma_set_destruida(Forma forma, bool status);
 
 /**
  * @brief Processa os comandos de um arquivo .qry, manipula as formas na arena e gera saídas.

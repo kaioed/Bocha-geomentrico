@@ -1,312 +1,341 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h> // Incluído para bool
 #include "disparador.h"
 #include "../pilha/pilha.h"
 #include "../manipilarArq/arquivo.h"
 #include "../fila/fila.h"
-#include "../qry/qry.h"
+#include "../qry/qry.h" // Inclui forma_get_tipo, forma_get_id_original, forma_set_destruida
 
-// Estruturas internas - não expostas no header
-typedef struct CarregadorInterno {
+// Estruturas internas (permanecem iguais)
+typedef struct CarregadorInterno
+{
     int id;
-    Pilha municao;
+    Pilha municao; // Agora é void*
 } CarregadorInterno;
 
 typedef struct DisparadorInterno
 {
     int id;
     Pilha disp;
-    CarregadorInterno* carregadorEsq;
-    CarregadorInterno* carregadorDir;
+    CarregadorInterno *carregadorEsq;
+    CarregadorInterno *carregadorDir;
     float x;
     float y;
+    float area_esmagada;
 } DisparadorInterno;
 
 Carregador *criar_carredor(int id)
 {
     CarregadorInterno *c = (CarregadorInterno *)malloc(sizeof(CarregadorInterno));
-    if (!c) return NULL;
+    if (!c)
+        return NULL;
     c->id = id;
-    inicializar(&c->municao);
+    inicializar((Pilha *)&c->municao);
+    if (!c->municao)
+    {
+        free(c);
+        return NULL;
+    }
     return (Carregador *)c;
 }
 
 Disparador *criar_disparador(int id, int x, int y)
 {
     DisparadorInterno *d = (DisparadorInterno *)malloc(sizeof(DisparadorInterno));
-    if (!d) return NULL;
+    if (!d)
+        return NULL;
     d->id = id;
-    d->x = x;
-    d->y = y;
-    
+    d->x = (float)x;
+    d->y = (float)y;
+    d->area_esmagada = 0.0f;
     d->carregadorEsq = NULL;
     d->carregadorDir = NULL;
-    
-
-    inicializar(&d->disp);
-    
+    inicializar((Pilha *)&d->disp);
+    if (!d->disp)
+    {
+        free(d);
+        return NULL;
+    }
     return (Disparador *)d;
 }
 
 void carregar_carregador(Fila fonte_ground, Carregador *c, int n, FILE *log)
 {
-    CarregadorInterno *carreg = (CarregadorInterno *)c;
-    if (!carreg || !fonte_ground) return;
+    CarregadorInterno *carreg = (CarregadorInterno *)(*c);
+   
+    if (!carreg || !carreg->municao || !fonte_ground)
+        return;
 
-    fprintf(log, "[lc] Carregando %d formas no Carregador ID %d\n", n, carreg->id);
+    if (log)
+        fprintf(log, "[lc] Carregando %d formas no Carregador ID %d\n", n, carreg->id);
 
-    for (int i = 0; i < n; i++) {
-        void *forma_wrapper_ptr = NULL;
+    for (int i = 0; i < n; i++)
+    {
+        Forma forma_wrapper_ptr = NULL;
 
-        // Tira uma forma do início da fila do ground
-        if (remover_da_fila(fonte_ground, &forma_wrapper_ptr)) {
-            if (forma_wrapper_ptr) {
-                FormaStruct* forma = (FormaStruct*) forma_wrapper_ptr;
+        if (remover_da_fila(fonte_ground, &forma_wrapper_ptr))
+        {
+            if (forma_wrapper_ptr)
+            {
 
-                // Coloca a forma na "munição" (pilha) do carregador
-                push(carreg->municao, forma);
+                push(carreg->municao, forma_wrapper_ptr);
 
-                // DEVOLVE a forma para o final da fila do ground, mantendo o ciclo
-                adicionar_na_fila(fonte_ground, forma);
+                forma_set_destruida(forma_wrapper_ptr, true);
 
-                // Log da operação
-                if (log) {
-                    const char* tipo_str = "Desconhecido";
-                    switch(forma->tipo) {
-                        case TIPO_CIRCULO:   tipo_str = "Circulo";   break;
-                        case TIPO_RETANGULO: tipo_str = "Retangulo"; break;
-                        case TIPO_LINHA:     tipo_str = "Linha";     break;
-                        case TIPO_TEXTO:     tipo_str = "Texto";     break;
+                if (log)
+                {
+                    const char *tipo_str = "Desconhecido";
+                    switch (forma_get_tipo(forma_wrapper_ptr))
+                    {
+                    case TIPO_CIRCULO:
+                        tipo_str = "Circulo";
+                        break;
+                    case TIPO_RETANGULO:
+                        tipo_str = "Retangulo";
+                        break;
+                    case TIPO_LINHA:
+                        tipo_str = "Linha";
+                        break;
+                    case TIPO_TEXTO:
+                        tipo_str = "Texto";
+                        break;
                     }
-                    fprintf(log, "\t- Carregado: Forma ID %d (Tipo: %s)\n", forma->id_original, tipo_str);
+                    fprintf(log, "\t- Carregado: Forma ID %d (Tipo: %s)\n", forma_get_id_original(forma_wrapper_ptr), tipo_str);
                 }
             }
-        } else {
-            // A fila do ground está vazia, não há mais nada a carregar.
-            fprintf(log, "\t- Fila de formas do Ground esgotada.\n");
-            break;
+        }
+        else
+        {
+            if (log)
+                fprintf(log, "\t- Fila de formas do Ground esgotada.\n");
+            break; // Sai do loop se a fila estiver vazia
         }
     }
-    fprintf(log, "\n");
+    if (log)
+        fprintf(log, "\n");
 }
 
-void carregar_disparador(Disparador *d, int n, char *comando)
+float disparador_get_area_esmagada(Disparador d) 
 {
     DisparadorInterno *disp = (DisparadorInterno *)d;
-    // Adiciona verificação inicial para o ponteiro do disparador
-    if (!disp) {
+    return disp ? disp->area_esmagada : 0.0f;
+}
+
+// Função carregar_disparador (lógica P1 adaptada)
+void carregar_disparador(Disparador *d_ptr, int n, char *comando) // Recebe Disparador* (void**)
+{
+    if (!d_ptr || !*d_ptr)
+    {
         fprintf(stderr, "Erro: Tentativa de carregar disparador NULL.\n");
         return;
     }
+    DisparadorInterno *disp = (DisparadorInterno *)(*d_ptr);
+
+    char lado = comando[0];
+    if (lado != 'e' && lado != 'd')
+        return;
 
     int i = 0;
     while (i < n)
     {
-        // Caso 1: Pilha de disparo está vazia -> Carregar da munição
-        if (vazia(&disp->disp))
+        Forma forma_topo_disp = NULL;   // void*
+        Forma forma_topo_loader = NULL; // void*
+        bool movido_do_loader_para_disp = false;
+        bool movido_do_disp_para_loader_oposto = false;
+
+        // Identifica carregadores de origem e destino
+        CarregadorInterno *loader_origem = (lado == 'e') ? disp->carregadorEsq : disp->carregadorDir;
+        CarregadorInterno *loader_destino = (lado == 'e') ? disp->carregadorDir : disp->carregadorEsq;
+
+        
+        if (vazia((Pilha *)&disp->disp))
         {
-            void *linha = NULL;
-            int pop_sucesso = 0;
-
-            if (strcmp(comando, "e") == 0)
+            if (loader_origem && pop((Pilha *)&loader_origem->municao, &forma_topo_loader))
             {
-                // Verifica se carregador esquerdo existe E se o pop tem sucesso
-                if (disp->carregadorEsq && pop(&disp->carregadorEsq->municao, &linha))
-                {
-                   pop_sucesso = 1;
-                } else {
-                    // fprintf(stderr, "Debug: Carregador esquerdo vazio ou inexistente.\n"); // Debug opcional
-                    break; // Para o loop se não puder carregar
-                }
+                push(disp->disp, forma_topo_loader);
+                movido_do_loader_para_disp = true;
             }
-            else if (strcmp(comando, "d") == 0)
+            else
             {
-                // Verifica se carregador direito existe E se o pop tem sucesso
-                if (disp->carregadorDir && pop(&disp->carregadorDir->municao, &linha))
-                {
-                    pop_sucesso = 1;
-                } else {
-                    // fprintf(stderr, "Debug: Carregador direito vazio ou inexistente.\n"); // Debug opcional
-                    break; // Para o loop se não puder carregar
-                }
-            }
-
-            // Só faz push se o pop foi bem-sucedido e obteve um ponteiro não-NULL
-            if (pop_sucesso && linha != NULL) {
-                 push(disp->disp, linha);
-                 i++; // Incrementa SÓ se carregou com sucesso
-            } else {
-                 // Se pop falhou ou retornou NULL, não há mais nada a fazer neste lado
-                 break;
+                break; // Origem vazia ou inexistente
             }
         }
-        // Caso 2: Pilha de disparo NÃO está vazia -> Ciclar entre carregadores
+        // Se o disparador NÃO está vazio
         else
         {
-            void *linha_disp = NULL;
-            void *linha_loader = NULL;
-            int pop_disp_ok = 0;
-            int pop_loader_ok = 0;
-            bool operacao_realizada = false; // Flag para saber se algo foi movido
-
-            if (strcmp(comando, "e") == 0)
+          
+            if (pop((Pilha *)&disp->disp, &forma_topo_disp))
             {
-                // Verifica se carregador esquerdo existe E NÃO está vazio
-                if (disp->carregadorEsq && !vazia(&disp->carregadorEsq->municao))
+                if (loader_destino)
                 {
-                    pop_disp_ok = pop(&disp->disp, &linha_disp);
-                    // Só faz push para o direito se o pop teve sucesso E o carregador direito existe
-                    if(pop_disp_ok && disp->carregadorDir) {
-                         push(disp->carregadorDir->municao, linha_disp);
-                         operacao_realizada = true; // Algo foi movido
-                    }
-                    pop_loader_ok = pop(&disp->carregadorEsq->municao, &linha_loader);
-                    // Só faz push para disp se o pop do carregador teve sucesso
-                    if(pop_loader_ok) {
-                         push(disp->disp, linha_loader);
-                         operacao_realizada = true; // Algo foi movido
-                    }
-                } else {
-                     // fprintf(stderr, "Debug: Carregador esquerdo vazio ou inexistente para ciclo.\n"); // Debug opcional
-                     break; // Para o loop se não puder ciclar
+                    push(loader_destino->municao, forma_topo_disp);
+                    movido_do_disp_para_loader_oposto = true;
                 }
-            }
-            else if (strcmp(comando, "d") == 0)
-            {
-                // Verifica se carregador direito existe E NÃO está vazio
-                if (disp->carregadorDir && !vazia(&disp->carregadorDir->municao))
+                else
                 {
-                    pop_disp_ok = pop(&disp->disp, &linha_disp);
-                    // Só faz push para o esquerdo se o pop teve sucesso E o carregador esquerdo existe
-                     if(pop_disp_ok && disp->carregadorEsq) {
-                         push(disp->carregadorEsq->municao, linha_disp);
-                         operacao_realizada = true;
-                     }
-                    pop_loader_ok = pop(&disp->carregadorDir->municao, &linha_loader);
-                    // Só faz push para disp se o pop do carregador teve sucesso
-                     if(pop_loader_ok) {
-                         push(disp->disp, linha_loader);
-                         operacao_realizada = true;
-                     }
-                } else {
-                     // fprintf(stderr, "Debug: Carregador direito vazio ou inexistente para ciclo.\n"); // Debug opcional
-                     break; // Para o loop se não puder ciclar
+                    
                 }
-            }
 
-            // Incrementa o contador SÓ se alguma operação de pop/push foi realmente realizada
-            if (operacao_realizada) {
-                 i++;
-            } else {
-                 // Se nenhuma operação foi feita (ex: pop falhou), paramos para evitar loop infinito
-                 break;
+                
+                if (loader_origem && pop((Pilha *)&loader_origem->municao, &forma_topo_loader))
+                {
+                    push(disp->disp, forma_topo_loader);
+                    movido_do_loader_para_disp = true;
+                } // Se não conseguir puxar, o disparador fica vazio, o que está correto.
             }
+            else
+            {
+                break; // Falha ao remover do disparador (improvável)
+            }
+        }
+
+        // Incrementa o contador do loop se alguma movimentação útil ocorreu
+        if (movido_do_loader_para_disp || movido_do_disp_para_loader_oposto)
+        {
+            i++;
+        }
+        else
+        {
+            break; // Nenhuma movimentação (loaders vazios/inexistentes)
         }
     }
 }
 
-float disparador_get_x(Disparador *d)
+float disparador_get_x(Disparador *d_ptr) // Recebe Disparador* (void**)
 {
-    DisparadorInterno *disp = (DisparadorInterno *)d;
-    if (!disp) return 0.0f;
+    if (!d_ptr || !*d_ptr)
+        return 0.0f;
+    DisparadorInterno *disp = (DisparadorInterno *)(*d_ptr);
     return disp->x;
 }
 
-float disparador_get_y(Disparador *d)
+float disparador_get_y(Disparador *d_ptr) // Recebe Disparador* (void**)
 {
-    DisparadorInterno *disp = (DisparadorInterno *)d;
-    if (!disp) return 0.0f;
+    if (!d_ptr || !*d_ptr)
+        return 0.0f;
+    DisparadorInterno *disp = (DisparadorInterno *)(*d_ptr);
     return disp->y;
 }
 
-int disparador_get_id(Disparador *d)
+int disparador_get_id(Disparador *d_ptr) // Recebe Disparador* (void**)
 {
-    DisparadorInterno *disp = (DisparadorInterno *)d;
-    if (!disp) return -1;
+    if (!d_ptr || !*d_ptr)
+        return -1;
+    DisparadorInterno *disp = (DisparadorInterno *)(*d_ptr);
     return disp->id;
 }
 
-void destruir_carregador(Carregador c)
+void destruir_carregador(Carregador c) // Recebe Carregador (void*)
 {
     CarregadorInterno *carreg = (CarregadorInterno *)c;
-    if (!carreg) return;
-    
-    // Libera a pilha de munição
-    liberar_pilha(&carreg->municao);
-    
-    // Libera a estrutura do carregador
+    if (!carreg)
+        return;
+    // Libera a estrutura da pilha (sem liberar os dados FormaStruct*)
+    if (carreg->municao)
+        liberar_pilha((Pilha *)&carreg->municao);
     free(carreg);
 }
 
-void destruir_disparador(Disparador *d)
+void destruir_disparador(Disparador *d_ptr) // Recebe Disparador* (void**)
 {
-    DisparadorInterno *disp = (DisparadorInterno *)d;
-    if (!disp) return;
+    if (!d_ptr || !*d_ptr) return; // Verifica container e ponteiro do objeto
+    DisparadorInterno *disp = (DisparadorInterno *)(*d_ptr); // Obtém o objeto
 
-  
-    if (disp->carregadorEsq && disp->carregadorEsq == disp->carregadorDir) {
-        destruir_carregador(disp->carregadorEsq);
-        disp->carregadorDir = NULL; 
+    Carregador carregador_esquerdo_a_liberar = NULL;
+    Carregador carregador_direito_a_liberar = NULL;
+
+    // Guarda os ponteiros dos carregadores antes de anular
+    if (disp->carregadorEsq != NULL) {
+        carregador_esquerdo_a_liberar = (Carregador)disp->carregadorEsq;
+    }
+    if (disp->carregadorDir != NULL) {
+        // Só guarda o direito se for DIFERENTE do esquerdo
+        if (disp->carregadorDir != disp->carregadorEsq) {
+            carregador_direito_a_liberar = (Carregador)disp->carregadorDir;
+        }
+
     }
 
-   
-    if (disp->carregadorEsq) {
-        destruir_carregador(disp->carregadorEsq);
-    }
+    disp->carregadorEsq = NULL;
+    disp->carregadorDir = NULL;
+
+
     
-   
-    if (disp->carregadorDir) {
-        destruir_carregador(disp->carregadorDir);
+    if (carregador_esquerdo_a_liberar != NULL) {
+        destruir_carregador(carregador_esquerdo_a_liberar); 
     }
+    if (carregador_direito_a_liberar != NULL) {
+       
+        destruir_carregador(carregador_direito_a_liberar); 
+    }
+
+
     
-    liberar_pilha(&disp->disp);
+    if (disp->disp) liberar_pilha((Pilha*)&disp->disp); // Passa Pilha* (void**)
+
+    // Libera a memória do próprio DisparadorInterno
     free(disp);
-}
 
-void disparador_set_carregador_dir(Disparador *d, Carregador *c)
-{
-    DisparadorInterno *disp = (DisparadorInterno *)d;
-    if (!disp) return;
     
-   
-    disp->carregadorDir = (CarregadorInterno *)c;
+    *d_ptr = NULL;
 }
 
-void disparador_set_carregador_esq(Disparador *d, Carregador *c)
+void disparador_set_carregador_dir(Disparador *d_ptr, Carregador *c_ptr) // Recebe Disparador*, Carregador*
 {
-    DisparadorInterno *disp = (DisparadorInterno *)d;
-    if (!disp) return;
-    
-   
-    disp->carregadorEsq = (CarregadorInterno *)c;
-
+    if (!d_ptr || !*d_ptr || !c_ptr)
+        return; // Adicionado verificação para c_ptr
+    DisparadorInterno *disp = (DisparadorInterno *)(*d_ptr);
+    disp->carregadorDir = (CarregadorInterno *)(*c_ptr);
 }
-int carregador_get_id(Carregador *c)
+
+void disparador_set_carregador_esq(Disparador *d_ptr, Carregador *c_ptr) // Recebe Disparador*, Carregador*
 {
-    CarregadorInterno *carreg = (CarregadorInterno *)c;
-    if (!carreg) return -1;
+    if (!d_ptr || !*d_ptr || !c_ptr)
+        return; // Adicionado verificação para c_ptr
+    DisparadorInterno *disp = (DisparadorInterno *)(*d_ptr);
+    disp->carregadorEsq = (CarregadorInterno *)(*c_ptr);
+}
+
+int carregador_get_id(Carregador *c_ptr) // Recebe Carregador* (void**)
+{
+    if (!c_ptr || !*c_ptr)
+        return -1;
+    CarregadorInterno *carreg = (CarregadorInterno *)(*c_ptr);
     return carreg->id;
 }
 
-int carregador_vazio(Carregador *c)
+int carregador_vazio(Carregador *c_ptr) // Recebe Carregador* (void**)
 {
-    CarregadorInterno *carreg = (CarregadorInterno *)c;
-    if (!carreg) return 1;
-    return vazia(&carreg->municao);
+    if (!c_ptr || !*c_ptr)
+        return 1;
+    CarregadorInterno *carreg = (CarregadorInterno *)(*c_ptr);
+    if (!carreg->municao)
+        return 1;
+    return vazia((Pilha *)&carreg->municao);
 }
 
-
-void* disparador_disparar_forma(Disparador *d)
+Forma disparador_disparar_forma(Disparador *d_ptr)
 {
-    DisparadorInterno *disp = (DisparadorInterno *)d;
-    if (!disp || vazia(&disp->disp)) return NULL;
-    
-    void *forma_disparada = NULL;
-    // Remove (pop) a forma da pilha de disparo
-    if (pop(&disp->disp, &forma_disparada)) {
+    if (!d_ptr || !*d_ptr)
+        return NULL;
+    DisparadorInterno *disp = (DisparadorInterno *)(*d_ptr);
+    if (!disp->disp || vazia((Pilha *)&disp->disp))
+        return NULL;
+
+    Forma forma_disparada = NULL; // Usa typedef Forma (void*)
+    if (pop((Pilha *)&disp->disp, &forma_disparada))
+    {
         return forma_disparada;
     }
-    
     return NULL;
+}
+
+// Funções de área esmagada (não usadas pela lógica P1, mas mantidas)
+void disparador_adicionar_area_esmagada(Disparador d, float area)
+{ // Recebe Disparador (void*)
+    if (!d)
+        return;
+    ((DisparadorInterno *)d)->area_esmagada += area;
 }
