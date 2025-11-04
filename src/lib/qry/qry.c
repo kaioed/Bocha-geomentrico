@@ -3,7 +3,7 @@
 #include <string.h>
 #include <math.h>
 #include <stdbool.h>
-#include "qry.h" // Inclui os protótipos e typedefs
+#include "qry.h" 
 #include "../geo/geo.h"
 #include "../disparador/disparador.h"
 #include "../formas/circulo/circulo.h"
@@ -11,7 +11,6 @@
 #include "../formas/linha/linha.h"
 #include "../formas/texto/texto.h"
 
-// Definição da FormaStruct (mantida no .c)
 typedef struct
 {
     int id_original;
@@ -25,11 +24,9 @@ typedef struct
 
 static int proximo_id_clone = 10000;
 
-// (Lógica P1) Calcula a área da forma
 static float calcular_area_forma(FormaStruct *f)
 {
-    // ... (igual à versão anterior) ...
-    if (!f || !f->dados_forma) // Adicionada verificação de dados_forma
+    if (!f || !f->dados_forma)
         return 0.0f;
     switch (f->tipo)
     {
@@ -46,36 +43,29 @@ static float calcular_area_forma(FormaStruct *f)
     }
 }
 
-// Implementação dos Getters
 TipoForma forma_get_tipo(Forma forma)
 {
-    // ... (igual à versão anterior) ...
     if (!forma)
-        return (TipoForma)-1; // Retorna um valor inválido, talvez logar erro?
+        return (TipoForma)-1;
     return ((FormaStruct *)forma)->tipo;
 }
 int forma_get_id_original(Forma forma)
 {
-    // ... (igual à versão anterior) ...
     if (!forma)
         return -1;
     return ((FormaStruct *)forma)->id_original;
 }
 
-// Implementação da função acessora
 void forma_set_destruida(Forma forma, bool status)
 {
-    // ... (igual à versão anterior) ...
     if (!forma)
         return;
     ((FormaStruct *)forma)->foi_destruida = status;
 }
 
-// (Lógica P1) Clona uma forma...
 static FormaStruct *clonar_forma(FormaStruct *original, float x, float y, const char *nova_cor_borda, bool trocar_cores)
 {
-    // ... (igual à versão anterior, com verificações internas) ...
-    if (!original || !original->dados_forma) // Verifica original e seus dados
+    if (!original || !original->dados_forma)
         return NULL;
 
     int id_clone = proximo_id_clone++;
@@ -89,7 +79,7 @@ static FormaStruct *clonar_forma(FormaStruct *original, float x, float y, const 
         const char *cor_b_orig = get_corBorda_circulo(orig_c);
         const char *cor_p_orig = get_corPreenchimento_circulo(orig_c);
         if (!cor_b_orig || !cor_p_orig)
-            return NULL; // Verifica cores originais
+            return NULL;
 
         const char *cor_b = trocar_cores ? cor_p_orig : (nova_cor_borda ? nova_cor_borda : cor_b_orig);
         const char *cor_p = trocar_cores ? cor_b_orig : cor_p_orig;
@@ -102,7 +92,7 @@ static FormaStruct *clonar_forma(FormaStruct *original, float x, float y, const 
         const char *cor_b_orig = get_corBorda_retangulo(orig_r);
         const char *cor_p_orig = get_corPreenchimento_retangulo(orig_r);
         if (!cor_b_orig || !cor_p_orig)
-            return NULL; // Verifica cores
+            return NULL;
 
         const char *cor_b = trocar_cores ? cor_p_orig : (nova_cor_borda ? nova_cor_borda : cor_b_orig);
         const char *cor_p = trocar_cores ? cor_b_orig : cor_p_orig;
@@ -114,7 +104,7 @@ static FormaStruct *clonar_forma(FormaStruct *original, float x, float y, const 
         Linha *orig_l = (Linha *)original->dados_forma;
         const char *cor_original = get_cor_linha(orig_l);
         if (!cor_original)
-            return NULL; // Verifica cor
+            return NULL;
 
         const char *nova_cor = nova_cor_borda ? nova_cor_borda : cor_original;
 
@@ -135,7 +125,7 @@ static FormaStruct *clonar_forma(FormaStruct *original, float x, float y, const 
         const char *orig_preench = get_corPreenchimento_texto(orig_t);
         const char *orig_conteudo = get_conteudo_texto(orig_t);
         if (!orig_borda || !orig_preench || !orig_conteudo)
-            return NULL; // Verifica cores e conteúdo
+            return NULL;
 
         char orig_anchor = get_anchor_texto(orig_t);
 
@@ -148,12 +138,11 @@ static FormaStruct *clonar_forma(FormaStruct *original, float x, float y, const 
     }
 
     if (!dados_clonados)
-        return NULL; // Falha na criação específica da forma
+        return NULL;
 
     FormaStruct *wrapper_clone = malloc(sizeof(FormaStruct));
     if (!wrapper_clone)
     {
-        // Libera dados_clonados se a alocação do wrapper falhar
         switch (original->tipo)
         {
         case TIPO_CIRCULO:
@@ -187,7 +176,6 @@ static FormaStruct *clonar_forma(FormaStruct *original, float x, float y, const 
     return wrapper_clone;
 }
 
-// Estrutura da Arena ...
 typedef struct
 {
     Fila formas_na_arena;
@@ -195,7 +183,6 @@ typedef struct
 
 Arena criar_arena()
 {
-    // ... (igual, com verificações) ...
     ArenaStruct *a = malloc(sizeof(ArenaStruct));
     if (!a)
     {
@@ -214,7 +201,6 @@ Arena criar_arena()
 
 void arena_adicionar_forma(Arena a, Forma forma)
 {
-    // ... (igual, com verificações) ...
     ArenaStruct *arena = (ArenaStruct *)a;
     if (!arena || !arena->formas_na_arena || !forma)
     {
@@ -226,7 +212,6 @@ void arena_adicionar_forma(Arena a, Forma forma)
 
 void destruir_arena(Arena a)
 {
-    // ... (igual) ...
     if (!a)
         return;
     ArenaStruct *arena = (ArenaStruct *)a;
@@ -235,7 +220,6 @@ void destruir_arena(Arena a)
     free(a);
 }
 
-// Lógica de Colisão AABB ...
 typedef struct
 {
     float minX, minY, maxX, maxY;
@@ -243,10 +227,9 @@ typedef struct
 
 static Aabb make_aabb_for_shape(FormaStruct *s)
 {
-    // ... (igual, com verificações internas) ...
     Aabb box = {0, 0, 0, 0};
     if (!s || !s->dados_forma)
-        return box; // Verifica s e dados_forma
+        return box;
 
     float landed_x = s->x_landed;
     float landed_y = s->y_landed;
@@ -255,7 +238,6 @@ static Aabb make_aabb_for_shape(FormaStruct *s)
     {
     case TIPO_CIRCULO:
     {
-        // ... (igual) ...
         float r = get_raio((Circulo *)s->dados_forma);
         box.minX = landed_x - r;
         box.maxX = landed_x + r;
@@ -265,7 +247,6 @@ static Aabb make_aabb_for_shape(FormaStruct *s)
     }
     case TIPO_RETANGULO:
     {
-        // ... (igual) ...
         float w = get_largura((Retangulo *)s->dados_forma);
         float h = get_altura((Retangulo *)s->dados_forma);
         box.minX = landed_x;
@@ -276,10 +257,9 @@ static Aabb make_aabb_for_shape(FormaStruct *s)
     }
     case TIPO_TEXTO:
     {
-        // ... (igual, com verificação de txt) ...
         Texto *t = (Texto *)s->dados_forma;
-        const char *txt = get_conteudo_texto(t);
-        int len = txt ? (int)strlen(txt) : 0;
+        const char *txt_content = get_conteudo_texto(t);
+        int len = txt_content ? (int)strlen(txt_content) : 0;
         float segLen = 10.0f * (float)len;
         char anchor = get_anchor_texto(t);
         float x1 = landed_x, y1 = landed_y, x2 = landed_x;
@@ -298,7 +278,7 @@ static Aabb make_aabb_for_shape(FormaStruct *s)
             x2 = landed_x + segLen * 0.5f;
         }
         else
-        { // default to start
+        {
             x2 = landed_x + segLen;
         }
 
@@ -310,7 +290,6 @@ static Aabb make_aabb_for_shape(FormaStruct *s)
     }
     case TIPO_LINHA:
     {
-        // ... (igual) ...
         Linha *l = (Linha *)s->dados_forma;
         float x1 = get_x1_linha(l);
         float y1 = get_y1_linha(l);
@@ -329,7 +308,6 @@ static Aabb make_aabb_for_shape(FormaStruct *s)
 
 static bool aabb_overlap(Aabb a, Aabb b)
 {
-    // ... (igual) ...
     if (a.maxX < b.minX)
         return false;
     if (b.maxX < a.minX)
@@ -343,7 +321,6 @@ static bool aabb_overlap(Aabb a, Aabb b)
 
 bool formas_colidem(FormaStruct *f1, FormaStruct *f2)
 {
-    // ... (igual, com verificação de NULL) ...
     if (!f1 || !f2)
         return false;
     Aabb a = make_aabb_for_shape(f1);
@@ -351,10 +328,8 @@ bool formas_colidem(FormaStruct *f1, FormaStruct *f2)
     return aabb_overlap(a, b);
 }
 
-// Função principal process_qry ...
 void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
 {
-    // Verifica ponteiros no início
     if (!svg || !ground || !txt)
     {
         fprintf(stderr, "Erro: Ponteiro de arquivo inválido em process_qry (svg, ground ou txt).\n");
@@ -366,19 +341,19 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
     if (!arena)
     {
         fprintf(stderr, "Erro fatal: Falha ao criar arena!\n");
-        // Idealmente, deveria liberar outras coisas aqui, mas vamos simplificar
         return;
     }
 
-    // Arrays para armazenar ponteiros para os ponteiros opacos
-    Disparador **d = NULL; // Array de Disparador* (void**)
-    Carregador **c = NULL; // Array de Carregador* (void**)
+    Disparador **d = NULL; 
+    Carregador **c = NULL; 
     int disp_conter = 0, car_conter = 0;
+    int comandos_executados = 0;
 
     char comando[64];
-    while (qry && fscanf(qry, "%63s", comando) == 1) // Verifica qry
+    while (qry && fscanf(qry, "%63s", comando) == 1)
     {
-        // --- Comando pd ---
+        comandos_executados++;
+
         if (strcmp(comando, "pd") == 0)
         {
             int id;
@@ -388,37 +363,32 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
                 fprintf(stderr, "Erro lendo args para pd\n");
                 continue;
             }
-            Disparador nd_opaco = criar_disparador(id, (int)x, (int)y); // Retorna Disparador (void*)
+            Disparador nd_opaco = criar_disparador(id, (int)x, (int)y);
             if (!nd_opaco)
             {
                 fprintf(stderr, "Erro criando disparador %d\n", id);
                 continue;
             }
 
-            // Realoca o array de ponteiros
             Disparador **temp_d = realloc(d, (disp_conter + 1) * sizeof(Disparador *));
             if (!temp_d)
             {
                 fprintf(stderr, "Falha no realloc para array d\n");
-                destruir_disparador(&nd_opaco); // Libera o disparador criado
+                destruir_disparador(&nd_opaco);
                 continue;
             }
             d = temp_d;
 
-            // *** CORREÇÃO: Aloca memória para o PONTEIRO no array ***
-            d[disp_conter] = malloc(sizeof(Disparador)); // Aloca Disparador* (void**)
+            d[disp_conter] = malloc(sizeof(Disparador));
             if (!d[disp_conter])
-            { // *** CORREÇÃO: Verifica malloc ***
+            {
                 fprintf(stderr, "Falha no malloc para ponteiro d[%d]\n", disp_conter);
-                destruir_disparador(&nd_opaco); // Libera o disparador criado
-                // Reduz o contador se o realloc aumentou, para evitar acesso inválido na limpeza
-                // (Alternativamente, poderia tentar realocar para tamanho menor, mas é complexo)
-                continue; // Pula este disparador
+                destruir_disparador(&nd_opaco);
+                continue;
             }
-            *d[disp_conter] = nd_opaco; // Armazena o ponteiro opaco (void*)
+            *d[disp_conter] = nd_opaco;
             disp_conter++;
         }
-        // --- Comando lc ---
         else if (strcmp(comando, "lc") == 0)
         {
             int id, n;
@@ -430,41 +400,36 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
             if (n <= 0)
                 continue;
 
-            Carregador nc_opaco = criar_carredor(id); // Retorna Carregador (void*)
+            Carregador nc_opaco = criar_carredor(id);
             if (!nc_opaco)
             {
                 fprintf(stderr, "Erro criando carregador %d\n", id);
                 continue;
             }
 
-            // Passa o endereço do ponteiro opaco para carregar
             carregar_carregador(get_ground_fila(ground), &nc_opaco, n, txt);
 
-            // Realoca o array de ponteiros
             Carregador **temp_c = realloc(c, (car_conter + 1) * sizeof(Carregador *));
             if (!temp_c)
             {
                 fprintf(stderr, "Falha no realloc para array c\n");
-                destruir_carregador(nc_opaco); // Libera o carregador criado
+                destruir_carregador(nc_opaco);
                 continue;
             }
             c = temp_c;
 
-            // *** CORREÇÃO: Aloca memória para o PONTEIRO no array ***
-            c[car_conter] = malloc(sizeof(Carregador)); // Aloca Carregador* (void**)
+            c[car_conter] = malloc(sizeof(Carregador));
             if (!c[car_conter])
-            { // *** CORREÇÃO: Verifica malloc ***
+            {
                 fprintf(stderr, "Falha no malloc para ponteiro c[%d]\n", car_conter);
-                destruir_carregador(nc_opaco); // Libera o carregador criado
-                continue;                      // Pula este carregador
+                destruir_carregador(nc_opaco);
+                continue;
             }
-            *c[car_conter] = nc_opaco; // Armazena o ponteiro opaco (void*)
+            *c[car_conter] = nc_opaco;
             car_conter++;
         }
-        // --- Comando atch ---
         else if (strcmp(comando, "atch") == 0)
         {
-            // ... (lógica igual, mas com mais verificações de NULL) ...
             int id_disp, id_ce, id_cd;
             if (fscanf(qry, "%d %d %d", &id_disp, &id_ce, &id_cd) != 3)
             {
@@ -472,10 +437,9 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
                 continue;
             }
 
-            Disparador *disp_alvo_ptr = NULL; // Ponteiro para (void**)
+            Disparador *disp_alvo_ptr = NULL;
             for (int i = 0; i < disp_conter; i++)
             {
-                // *** CORREÇÃO: Verifica d[i] ANTES de *d[i] ***
                 if (d[i] && *d[i] && disparador_get_id(d[i]) == id_disp)
                 {
                     disp_alvo_ptr = d[i];
@@ -485,13 +449,12 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
 
             if (disp_alvo_ptr)
             {
-                Carregador *carregador_esq_ptr = NULL; // Ponteiro para (void**)
-                Carregador *carregador_dir_ptr = NULL; // Ponteiro para (void**)
+                Carregador *carregador_esq_ptr = NULL;
+                Carregador *carregador_dir_ptr = NULL;
                 int idx_esq = -1, idx_dir = -1;
 
                 for (int i = 0; i < car_conter; i++)
                 {
-                    // *** CORREÇÃO: Verifica c[i] ANTES de *c[i] ***
                     if (c[i] != NULL && *c[i] != NULL)
                     {
                         if (carregador_get_id(c[i]) == id_ce)
@@ -506,14 +469,12 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
                         }
                     }
                 }
-                // Associa e anula ponteiro no array c
                 if (carregador_esq_ptr)
                 {
                     disparador_set_carregador_esq(disp_alvo_ptr, carregador_esq_ptr);
                     if (idx_esq != -1)
                     {
-                        // A memória apontada por *c[idx_esq] agora pertence ao disparador
-                        free(c[idx_esq]); // Libera o container do ponteiro no array
+                        free(c[idx_esq]);
                         c[idx_esq] = NULL;
                     }
                 }
@@ -522,13 +483,11 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
                     disparador_set_carregador_dir(disp_alvo_ptr, carregador_dir_ptr);
                     if (idx_dir != -1 && idx_dir != idx_esq)
                     {
-                        // A memória apontada por *c[idx_dir] agora pertence ao disparador
-                        free(c[idx_dir]); // Libera o container do ponteiro no array
+                        free(c[idx_dir]);
                         c[idx_dir] = NULL;
                     }
                     else if (idx_dir != -1 && idx_dir == idx_esq)
                     {
-                        // Se for o mesmo carregador, já foi anulado
                     }
                 }
             }
@@ -538,10 +497,8 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
                     fprintf(txt, "ATCH: Disparador ID %d não encontrado.\n", id_disp);
             }
         }
-        // --- Comando shft ---
         else if (strcmp(comando, "shft") == 0)
         {
-            // ... (lógica igual, com mais verificações de NULL) ...
             int id, n;
             char lado[2];
             if (fscanf(qry, "%d %1s %d", &id, lado, &n) != 3)
@@ -555,7 +512,6 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
             bool found = false;
             for (int i = 0; i < disp_conter; i++)
             {
-                // *** CORREÇÃO: Verifica d[i] ANTES de *d[i] ***
                 if (d[i] && *d[i] && disparador_get_id(d[i]) == id)
                 {
                     carregar_disparador(d[i], n, lado);
@@ -566,10 +522,8 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
             if (!found && txt)
                 fprintf(txt, "SHFT: Disparador ID %d não encontrado.\n", id);
         }
-        // --- Comando rjd ---
         else if (strcmp(comando, "rjd") == 0)
         {
-            // ... (lógica igual, com mais verificações de NULL) ...
             int id;
             float dx_inicial, dy_inicial, ix, iy;
             char lado[2];
@@ -584,7 +538,6 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
             Disparador *disp_alvo_ptr = NULL;
             for (int i = 0; i < disp_conter; i++)
             {
-                // *** CORREÇÃO: Verifica d[i] ANTES de *d[i] ***
                 if (d[i] && *d[i] && disparador_get_id(d[i]) == id)
                 {
                     disp_alvo_ptr = d[i];
@@ -646,10 +599,8 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
                     fprintf(txt, "[rjd] Erro: Disparador com ID %d não encontrado.\n", id);
             }
         }
-        // --- Comando dsp ---
         else if (strcmp(comando, "dsp") == 0)
         {
-            // ... (lógica igual, com mais verificações de NULL) ...
             int id;
             float dx, dy;
             char flag[2];
@@ -662,15 +613,14 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
             bool found = false;
             for (int i = 0; i < disp_conter; i++)
             {
-                // *** CORREÇÃO: Verifica d[i] ANTES de *d[i] ***
                 if (d[i] && *d[i] && disparador_get_id(d[i]) == id)
                 {
                     Forma forma_disparada_opaco = disparador_disparar_forma(d[i]);
                     if (!forma_disparada_opaco)
-                    { // Se não disparou nada, termina
+                    {
                         if (txt)
                             fprintf(txt, "DSP: Disparador ID %d vazio.\n", id);
-                        found = true; // Marca como encontrado para não logar erro
+                        found = true;
                         break;
                     }
                     FormaStruct *forma_disparada = (FormaStruct *)forma_disparada_opaco;
@@ -703,14 +653,11 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
                 fprintf(txt, "DSP: Disparador ID %d não encontrado.\n", id);
         }
 
-        // --- Comando calc ---
         else if (strcmp(comando, "calc") == 0)
         {
-            // ... (lógica igual, com mais verificações de NULL) ...
             if (txt)
                 fprintf(txt, "\n--- Início do Processamento de Colisões (calc) ---\n");
 
-            // Verifica se a arena e o ground são válidos
             Fila fila_arena = arena ? ((ArenaStruct *)arena)->formas_na_arena : NULL;
             Fila fila_ground = get_ground_fila(ground);
             if (!fila_arena || !fila_ground)
@@ -748,7 +695,7 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
 
                 FormaStruct *J = (FormaStruct *)J_ptr_void;
                 if (!J)
-                { // Se J for NULL (erro na fila?), I sobrevive
+                {
                     FormaStruct *Ipos = clonar_forma(I, I->x_landed, I->y_landed, NULL, false);
                     if (Ipos)
                         adicionar_na_fila(fila_ground, (void *)Ipos);
@@ -799,7 +746,7 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
 
                         const char *cor_preenchimento_i = NULL;
                         if (I->dados_forma)
-                        { // Verifica se dados_forma não é NULL
+                        {
                             if (I->tipo == TIPO_CIRCULO)
                                 cor_preenchimento_i = get_corPreenchimento_circulo(I->dados_forma);
                             else if (I->tipo == TIPO_RETANGULO)
@@ -837,7 +784,7 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
                         }
                     }
                 }
-                else // Sem overlap
+                else
                 {
                     FormaStruct *Ipos = clonar_forma(I, I->x_landed, I->y_landed, NULL, false);
                     FormaStruct *Jpos = clonar_forma(J, J->x_landed, J->y_landed, NULL, false);
@@ -856,7 +803,7 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
                             fprintf(txt, "CALC: Erro ao clonar Jpos (sem overlap, ID %d).\n", J->id_original);
                     }
                 }
-            } // fim while (loop da arena)
+            }
 
             if (txt)
             {
@@ -865,39 +812,39 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
                 fprintf(txt, "\n");
             }
 
-            // Esvazia e recria a fila da arena
             if (((ArenaStruct *)arena)->formas_na_arena)
                 destruir_fila(((ArenaStruct *)arena)->formas_na_arena);
             ((ArenaStruct *)arena)->formas_na_arena = iniciar_fila();
             if (!((ArenaStruct *)arena)->formas_na_arena)
             {
                 fprintf(stderr, "Erro fatal: Falha ao recriar fila da arena após CALC!\n");
-                // Aqui talvez seja melhor sair, pois o estado está inconsistente
                 exit(1);
             }
         }
         else
-        { // Comando desconhecido
+        {
             if (txt)
                 fprintf(txt, "Comando QRY desconhecido: %s\n", comando);
         }
 
-    } // fim while (leitura qry)
+    }
 
-    // Desenho final no SVG...
+    if (txt) {
+        fprintf(txt, "\n\n--- RELATORIO FINAL QRY ---\n");
+        fprintf(txt, "Total de comandos QRY executados: %d\n", comandos_executados);
+    }
+
     Fila fila_ground = get_ground_fila(ground);
     if (!fila_ground)
     {
         fprintf(stderr, "Erro: Fila ground inválida antes do desenho final.\n");
-        // Tenta limpar o que foi alocado
         destruir_arena(arena);
-        // Não podemos limpar d e c facilmente aqui sem potencialmente causar double free
         return;
     }
 
     Fila temp_fila = iniciar_fila();
     if (!temp_fila)
-    { /* Tratar erro */
+    {
         destruir_arena(arena);
         return;
     }
@@ -909,9 +856,8 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
         if (!forma)
             continue;
 
-        if (!forma->foi_destruida) // Só desenha se não foi destruída
+        if (!forma->foi_destruida)
         {
-            // ... (código de desenho igual à versão anterior, com verificações internas) ...
             switch (forma->tipo)
             {
             case TIPO_CIRCULO:
