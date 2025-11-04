@@ -23,6 +23,10 @@ typedef struct
 } FormaStruct;
 
 static int proximo_id_clone = 10000;
+static int total_disparos = 0;
+static int total_formas_esmagadas = 0;
+static int total_formas_clonadas = 0;
+static double pontuacao_final = 0.0;
 
 static float calcular_area_forma(FormaStruct *f)
 {
@@ -173,6 +177,7 @@ static FormaStruct *clonar_forma(FormaStruct *original, float x, float y, const 
     wrapper_clone->foi_destruida = false;
     wrapper_clone->x_landed = x;
     wrapper_clone->y_landed = y;
+    total_formas_clonadas++;
     return wrapper_clone;
 }
 
@@ -547,7 +552,7 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
 
             if (disp_alvo_ptr)
             {
-                int contador_disparos = 0;
+                int contador_disparos_rjd = 0;
                 if (txt)
                     fprintf(txt, "[rjd] Iniciando rajada para disparador ID %d, lado %s\n", id, lado);
 
@@ -561,10 +566,11 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
                             fprintf(txt, "\t-> Rajada concluída. Carregador esgotado ou erro no disparo.\n\n");
                         break;
                     }
+                    total_disparos++;
                     FormaStruct *forma_disparada = (FormaStruct *)forma_disparada_opaco;
 
-                    float dx_atual = dx_inicial + contador_disparos * ix;
-                    float dy_atual = dy_inicial + contador_disparos * iy;
+                    float dx_atual = dx_inicial + contador_disparos_rjd * ix;
+                    float dy_atual = dy_inicial + contador_disparos_rjd * iy;
                     float x_disp_val = disparador_get_x(disp_alvo_ptr);
                     float y_disp_val = disparador_get_y(disp_alvo_ptr);
                     float x_final = x_disp_val + dx_atual;
@@ -580,7 +586,7 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
                         if (txt)
                         {
                             fprintf(txt, "\t- Rajada Disparo %d: Forma ID %d -> Posicao Final (%.1f, %.1f) | Deslocamento (dx:%.1f, dy:%.1f)\n",
-                                    contador_disparos + 1,
+                                    contador_disparos_rjd + 1,
                                     forma_disparada->id_original,
                                     x_final, y_final, dx_atual, dy_atual);
                         }
@@ -588,9 +594,9 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
                     else
                     {
                         if (txt)
-                            fprintf(txt, "\t- Rajada Disparo %d: Erro ao clonar forma ID %d\n", contador_disparos + 1, forma_disparada->id_original);
+                            fprintf(txt, "\t- Rajada Disparo %d: Erro ao clonar forma ID %d\n", contador_disparos_rjd + 1, forma_disparada->id_original);
                     }
-                    contador_disparos++;
+                    contador_disparos_rjd++;
                 }
             }
             else
@@ -623,6 +629,7 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
                         found = true;
                         break;
                     }
+                    total_disparos++;
                     FormaStruct *forma_disparada = (FormaStruct *)forma_disparada_opaco;
 
                     float x_final = disparador_get_x(d[i]) + dx;
@@ -666,7 +673,6 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
                 continue;
             }
 
-            double total_crushed_area = 0.0;
             void *I_ptr_void = NULL;
             void *J_ptr_void = NULL;
 
@@ -721,12 +727,14 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
                     if (txt)
                         fprintf(txt, "\tColisao: ID %d (Area %.2f) vs ID %d (Area %.2f)\n", I->id_original, areaI, J->id_original, areaJ);
 
-                    total_crushed_area += (areaI < areaJ) ? areaI : areaJ;
+                    double area_esmagada_atual = (areaI < areaJ) ? areaI : areaJ;
+                    pontuacao_final += area_esmagada_atual;
 
                     if (areaI < areaJ)
                     {
                         if (txt)
                             fprintf(txt, "\t-> ID %d sobrevive, ID %d destruido.\n", J->id_original, I->id_original);
+                        total_formas_esmagadas++;
 
                         FormaStruct *Jpos = clonar_forma(J, J->x_landed, J->y_landed, NULL, false);
                         if (Jpos)
@@ -743,6 +751,7 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
                     {
                         if (txt)
                             fprintf(txt, "\t-> ID %d sobrevive, ID %d destruido. Clones gerados.\n", I->id_original, J->id_original);
+                        total_formas_esmagadas++;
 
                         const char *cor_preenchimento_i = NULL;
                         if (I->dados_forma)
@@ -808,7 +817,7 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
             if (txt)
             {
                 fprintf(txt, "\n[calc]\n");
-                fprintf(txt, "\tResult: %.2f\n", (float)total_crushed_area);
+                fprintf(txt, "\tResult: %.2f\n", (float)pontuacao_final);
                 fprintf(txt, "\n");
             }
 
@@ -831,7 +840,11 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt)
 
     if (txt) {
         fprintf(txt, "\n\n--- RELATORIO FINAL QRY ---\n");
-        fprintf(txt, "Total de comandos QRY executados: %d\n", comandos_executados);
+        fprintf(txt, "pontuacao final: %.2f\n", (float)pontuacao_final);
+        fprintf(txt, "numero total de instrucoes executadas: %d\n", comandos_executados);
+        fprintf(txt, "numero total de disparos: %d\n", total_disparos);
+        fprintf(txt, "numero total de formas esmagadas: %d\n", total_formas_esmagadas);
+        fprintf(txt, "numero total de formas clonadas: %d\n", total_formas_clonadas);
     }
 
     Fila fila_ground = get_ground_fila(ground);
