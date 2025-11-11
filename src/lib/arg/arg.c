@@ -22,10 +22,6 @@ char *obter_valor_opcao(int argc, char *argv[], char *opt_name) {
   return NULL;
 }
 
-// Função para extrair o sufixo do comando
-// (última string que não começa com '-')
-// argc e argv são os argumentos da função main
-// Retorna um ponteiro para o sufixo ou NULL se não for encontrado
 char *obter_sufixo_comando(int argc, char *argv[]) {
   // Duplica argv para trabalhar com uma cópia
   char **argv_copia = malloc(argc * sizeof(char *));
