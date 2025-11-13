@@ -1,10 +1,10 @@
 # Makefile atualizado para automatizar OBJETOS e dependências
 PROJ_NAME = ted
 LIBS = -lm
-# Tenta find primeiro, se falhar usa wildcard
-SRC_FILES := $(shell find src -name "*.c" 2>/dev/null)
+# Tenta find primeiro (a partir do dir. atual '.'), se falhar usa wildcard
+SRC_FILES := $(shell find . -name "*.c" 2>/dev/null)
 ifeq ($(SRC_FILES),)
-	SRC_FILES := $(wildcard src/*.c) $(wildcard src/*/*.c) $(wildcard src/*/*/*.c)
+	SRC_FILES := $(wildcard *.c) $(wildcard */*.c) $(wildcard */*/*.c)
 endif
 OBJETOS := $(SRC_FILES:.c=.o)       # Substitui .c por .o
 
