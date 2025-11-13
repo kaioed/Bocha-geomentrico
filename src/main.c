@@ -44,17 +44,6 @@ int main(int argc, char *argv[]) {
             entrada_geo = geo_path_completo; 
         }
 
-        if (saida_pasta != NULL) {
-            size_t saida_len = strlen(saida_pasta);
-            saida_path_completo = (char *)malloc(prefixo_len + saida_len + 2);
-            if (precisa_barra) {
-                sprintf(saida_path_completo, "%s/%s", prefixo_pasta, saida_pasta);
-            } else {
-                sprintf(saida_path_completo, "%s%s", prefixo_pasta, saida_pasta);
-            }
-            saida_pasta = saida_path_completo; 
-        }
-
         if (entrada_qry != NULL) {
             size_t qry_len = strlen(entrada_qry);
             qry_path_completo = (char *)malloc(prefixo_len + qry_len + 2);
