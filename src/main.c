@@ -26,6 +26,44 @@ void criarDiretorioSeNaoExiste(const char *path) {
     }
 }
 
+
+static const char* find_filename_start(const char* path) {
+    if (path == NULL) return NULL;
+    const char* last_slash = strrchr(path, '/');
+    if (last_slash) {
+        return last_slash + 1; 
+    }
+    return path; 
+}
+
+
+static char* get_basename_alloc(const char* path) {
+    const char* filename = find_filename_start(path);
+    if (filename == NULL) return NULL;
+
+    const char* last_dot = strrchr(filename, '.');
+    
+    size_t length;
+    if (last_dot && last_dot > filename) {
+        length = last_dot - filename; 
+    } else {
+        length = strlen(filename); 
+    }
+
+    char* basename_str = (char*)malloc(length + 1);
+    if (!basename_str) {
+        fprintf(stderr, "Erro: Falha ao alocar memoria para basename\n");
+        exit(1);
+    }
+    
+    strncpy(basename_str, filename, length);
+    basename_str[length] = '\0';
+    return basename_str;
+}
+
+
+
+
 int main(int argc, char *argv[]) {
 
     const char *entrada_geo     = obter_valor_opcao(argc, argv, "f");
@@ -65,12 +103,21 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    
+    char* geo_basename = get_basename_alloc(entrada_geo);
+    char* qry_basename = NULL;
+    if (entrada_qry) {
+        qry_basename = get_basename_alloc(entrada_qry);
+    }
+
+
     criarDiretorioSeNaoExiste(saida_pasta);
 
     FILE *geo = abrirArquivo(entrada_geo, "r");
 
     char svg_arqnome[512];
-    snprintf(svg_arqnome, sizeof(svg_arqnome), "%s/arq.svg", saida_pasta);
+    
+    snprintf(svg_arqnome, sizeof(svg_arqnome), "%s/%s.svg", saida_pasta, geo_basename);
     FILE *svg = abrirArquivo(svg_arqnome, "w");
 
     Ground ground = process_geo(geo, svg);
@@ -78,15 +125,18 @@ int main(int argc, char *argv[]) {
     fecharArquivo(svg);
     fecharArquivo(geo);
 
-    if (entrada_qry != NULL) {
+    
+    if (entrada_qry != NULL && qry_basename != NULL) {
         FILE *qry_file = abrirArquivo(entrada_qry, "r");
 
         char svg_final_nome[512];
-        snprintf(svg_final_nome, sizeof(svg_final_nome), "%s/arq-arqcons.svg", saida_pasta);
+        
+        snprintf(svg_final_nome, sizeof(svg_final_nome), "%s/%s-%s.svg", saida_pasta, geo_basename, qry_basename);
         FILE *svg_final = abrirArquivo(svg_final_nome, "w");
 
         char txt_nome[512];
-        snprintf(txt_nome, sizeof(txt_nome), "%s/arq-arqcons.txt", saida_pasta);
+        // MODIFICADO: Usa "geo-qry.txt"
+        snprintf(txt_nome, sizeof(txt_nome), "%s/%s-%s.txt", saida_pasta, geo_basename, qry_basename);
         FILE *txt_file = abrirArquivo(txt_nome, "w");
 
         process_qry(qry_file, svg_final, ground, txt_file);
@@ -97,6 +147,12 @@ int main(int argc, char *argv[]) {
     }
 
     destruir_ground(ground);
+
+   
+    free(geo_basename);
+    if (qry_basename) {
+        free(qry_basename);
+    }
 
     free(geo_path_completo);
     free(qry_path_completo);
