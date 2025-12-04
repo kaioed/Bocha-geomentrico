@@ -117,3 +117,19 @@ char get_anchor_texto(const Texto* t) {
   const TextoStruct* txt = (const TextoStruct*)t;
   return txt->anchor;
 }
+
+void set_corPreenchimento_texto(Texto* t, const char* cor) {
+    TextoStruct* txt = (TextoStruct*)t;
+    if (txt && cor) {
+        strncpy(txt->corPreenchimento, cor, sizeof(txt->corPreenchimento)-1);
+        txt->corPreenchimento[sizeof(txt->corPreenchimento)-1] = '\0';
+    }
+}
+
+void set_corBorda_texto(Texto* t, const char* cor) {
+    TextoStruct* txt = (TextoStruct*)t;
+    if (txt && cor) {
+        strncpy(txt->corBorda, cor, sizeof(txt->corBorda)-1);
+        txt->corBorda[sizeof(txt->corBorda)-1] = '\0';
+    }
+}

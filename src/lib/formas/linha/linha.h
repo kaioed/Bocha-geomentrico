@@ -83,4 +83,11 @@ int get_id_linha(const Linha* l);
  */
 const char* get_cor_linha(const Linha* l);
 
+/**
+ * @brief Define a cor da linha
+ * @param l ponteiro para a linha
+ * @param cor nova cor da linha (ex: #000000)
+ */
+void set_cor_linha(Linha* l, const char* cor);
+
 #endif

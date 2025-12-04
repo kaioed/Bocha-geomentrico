@@ -8,12 +8,25 @@
 #include "../formas/linha/linha.h"
 #include "../formas/texto/texto.h"
 
+static void converter_familia_svg(const char* familia_trabalho, char* familia_svg) {
+    if (strcmp(familia_trabalho, "sans") == 0) strcpy(familia_svg, "sans-serif");
+    else if (strcmp(familia_trabalho, "serif") == 0) strcpy(familia_svg, "serif");
+    else if (strcmp(familia_trabalho, "cursive") == 0) strcpy(familia_svg, "cursive");
+    else strcpy(familia_svg, "sans-serif");
+}
+
+static void converter_peso_svg(const char* peso_trabalho, char* peso_svg) {
+    if (strcmp(peso_trabalho, "n") == 0) strcpy(peso_svg, "normal");
+    else if (strcmp(peso_trabalho, "b") == 0) strcpy(peso_svg, "bold");
+    else if (strcmp(peso_trabalho, "b+") == 0) strcpy(peso_svg, "bolder");
+    else if (strcmp(peso_trabalho, "l") == 0) strcpy(peso_svg, "lighter");
+    else strcpy(peso_svg, "normal");
+}
 
 typedef struct {
     Fila todas_as_formas;     
     Pilha pilha_clones_para_libertar; 
 } GroundStruct;
-
 
 typedef struct {
     int id_original;
@@ -25,7 +38,6 @@ typedef struct {
     int id_disparador_origem;
 } FormaStruct;
 
-
 static FormaStruct* criar_forma_wrapper(int id, TipoForma tipo, void* dados_forma) {
     FormaStruct* wrapper = (FormaStruct*) malloc(sizeof(FormaStruct));
     if (!wrapper) return NULL;
@@ -35,7 +47,6 @@ static FormaStruct* criar_forma_wrapper(int id, TipoForma tipo, void* dados_form
     wrapper->dados_forma = dados_forma;
     wrapper->foi_destruida = false;
     wrapper->foi_clonada = false;
-
 
     switch (tipo) {
         case TIPO_CIRCULO:
@@ -63,14 +74,12 @@ static FormaStruct* criar_forma_wrapper(int id, TipoForma tipo, void* dados_form
 }
 
 Ground process_geo(FILE *geo, FILE *svg) {
-   
-     GroundStruct* ground = (GroundStruct*) malloc(sizeof(GroundStruct));
+    GroundStruct* ground = (GroundStruct*) malloc(sizeof(GroundStruct));
     if (!ground) {
         fprintf(stderr, "Erro ao alocar memoria para Ground.\n");
         return NULL;
     }
     ground->todas_as_formas = iniciar_fila();
-   
 
     if (!svg || !geo) { 
          fprintf(stderr, "Erro: Arquivo geo ou svg inválido em process_geo.\n");
@@ -79,14 +88,21 @@ Ground process_geo(FILE *geo, FILE *svg) {
          return NULL;
     }
 
-    fprintf(svg, "<svg xmlns='http://www.w3.org/2000/svg'>\n");
+    
+    fprintf(svg, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
+    fprintf(svg, "<svg xmlns:svg=\"http://www.w3.org/2000/svg\" xmlns=\"http://www.w3.org/2000/svg\" width=\"1000\" height=\"1000\">\n");
+    fprintf(svg, "<g>\n");
+
+   
+    char current_fam[64] = "sans";
+    char current_weight[16] = "n";
+    char current_size[16] = "12";
 
     char linha_buffer[1024];
     char comando[16]; 
     char* args_ptr;   
 
     while (fgets(linha_buffer, sizeof(linha_buffer), geo) != NULL) {
-        
         if (sscanf(linha_buffer, " %15s", comando) != 1) continue; 
 
         char* cmd_end_ptr = strstr(linha_buffer, comando);
@@ -102,76 +118,79 @@ Ground process_geo(FILE *geo, FILE *svg) {
 
         if (strcmp(comando, "c") == 0) {
             int id; float x, y, r; char corb[32], corp[32];
-            // *** CORREÇÃO: Removido '&' de corb e corp ***
             if (sscanf(args_ptr, "%d %f %f %f %31s %31s", &id, &x, &y, &r, corb, corp) == 6) {
                  Circulo* c = criar_circulo(x, y, r, corp, corb, id);
                  if (c) {
                      nova_forma = criar_forma_wrapper(id, TIPO_CIRCULO, c);
-                     fprintf(svg, "<circle id='%d' cx='%.1f' cy='%.1f' r='%.1f' stroke='%s' fill='%s'/>\n",
-                             id, x, y, r, corb, corp);
+                    
+                     fprintf(svg, " <circle id=\"%d\" cx=\"%lf\" cy=\"%lf\" r=\"%lf\" stroke=\"%s\" fill=\"%s\" opacity=\"0.500000\" stroke-width=\"1.500000\" />\n",
+                             id, (double)x, (double)y, (double)r, corb, corp);
                  }
-            } else { fprintf(stderr, "Erro lendo 'c': %s", linha_buffer); }
+            }
         }
         else if (strcmp(comando, "r") == 0) {
             int id; float x, y, w, h; char corb[32], corp[32];
-            // *** CORREÇÃO: Removido '&' de corb e corp ***
             if (sscanf(args_ptr, "%d %f %f %f %f %31s %31s", &id, &x, &y, &w, &h, corb, corp) == 7) {
                  Retangulo* r = criar_retangulo(x, y, w, h, corp, corb, id);
                  if (r) {
                      nova_forma = criar_forma_wrapper(id, TIPO_RETANGULO, r);
-                     fprintf(svg, "<rect id='%d' x='%.1f' y='%.1f' width='%.1f' height='%.1f' stroke='%s' fill='%s'/>\n",
-                             id, x, y, w, h, corb, corp);
+                     
+                     fprintf(svg, "\t<rect id=\"%d\" x=\"%lf\" y=\"%lf\" width=\"%lf\" height=\"%lf\" stroke=\"%s\" fill=\"%s\" opacity=\"0.500000\" stroke-width=\"1.500000\" />\n",
+                             id, (double)x, (double)y, (double)w, (double)h, corb, corp);
                  }
-            } else { fprintf(stderr, "Erro lendo 'r': %s", linha_buffer); }
+            }
         }
         else if (strcmp(comando, "l") == 0) {
             int id; float x1, y1, x2, y2; char cor[32];
-            // *** CORREÇÃO: Removido '&' de cor *** (Embora não estivesse dando warning, é o correto)
             if (sscanf(args_ptr, "%d %f %f %f %f %31s", &id, &x1, &y1, &x2, &y2, cor) == 6) {
                  Linha* l = criar_linha(x1, y1, x2, y2, cor, id);
                  if (l) {
                      nova_forma = criar_forma_wrapper(id, TIPO_LINHA, l);
-                     fprintf(svg, "<line id='%d' x1='%.1f' y1='%.1f' x2='%.1f' y2='%.1f' stroke='%s'/>\n",
-                             id, x1, y1, x2, y2, cor);
+                    
+                     fprintf(svg, "\t<line id=\"%d\" x1=\"%lf\" y1=\"%lf\" x2=\"%lf\" y2=\"%lf\" stroke=\"%s\" stroke-width=\"1.500000\" />\n",
+                             id, (double)x1, (double)y1, (double)x2, (double)y2, cor);
                  }
-            } else { fprintf(stderr, "Erro lendo 'l': %s", linha_buffer); }
+            }
         }
         else if (strcmp(comando, "t") == 0) {
-            int id; float x, y; char corb[32], corp[32], anchor = ' ', texto[256] = ""; 
-            // *** CORREÇÃO: Removido '&' de corb e corp ***
-            int scan_result = sscanf(args_ptr, "%d %f %f %31s %31s %c %[^\n]", &id, &x, &y, corb, corp, &anchor, texto);
+            int id; float x, y; char corb[32], corp[32], anchor = ' ', texto_conteudo[256] = ""; 
+            int scan_result = sscanf(args_ptr, "%d %f %f %31s %31s %c %[^\n]", &id, &x, &y, corb, corp, &anchor, texto_conteudo);
             
             if (scan_result >= 5) {
                 if (scan_result < 6 || anchor == ' ' || anchor == '\n') anchor = 'i'; 
-                if (scan_result < 7) texto[0] = '\0';
+                if (scan_result < 7) texto_conteudo[0] = '\0';
 
-                Texto* t = criar_texto(x, y, corb, corp, anchor, texto, NULL, id);
+                char fam_svg[64], peso_svg[16];
+                converter_familia_svg(current_fam, fam_svg);
+                converter_peso_svg(current_weight, peso_svg);
+                char font_combined[128];
+                sprintf(font_combined, "%s,%s,%s", fam_svg, peso_svg, current_size);
+
+                Texto* t = criar_texto(x, y, corb, corp, anchor, texto_conteudo, font_combined, id);
                 if (t) {
                      nova_forma = criar_forma_wrapper(id, TIPO_TEXTO, t);
 
-                     const char *ancora_svg = "start"; 
-                     if (anchor == 'm' || anchor == 'M') ancora_svg = "middle";
-                     else if (anchor == 'e' || anchor == 'E' || anchor == 'f' || anchor == 'F') ancora_svg = "end";
-                     else if (anchor == 's' || anchor == 'S' || anchor == 'i' || anchor == 'I') ancora_svg = "start";
+                     const char *ancora_str_svg = "start"; 
+                     if (anchor == 'm' || anchor == 'M') ancora_str_svg = "middle";
+                     else if (anchor == 'e' || anchor == 'E' || anchor == 'f' || anchor == 'F') ancora_str_svg = "end";
+                     else if (anchor == 's' || anchor == 'S' || anchor == 'i' || anchor == 'I') ancora_str_svg = "start";
 
-                     fprintf(svg, "<text id='%d' x='%.1f' y='%.1f' stroke='%s' fill='%s' text-anchor='%s'>%s</text>\n",
-                             id, x, y, corb, corp, ancora_svg, texto);
+                     // Formatação EXATA do Pietro
+                     fprintf(svg, "\t<text id=\"%d\" x=\"%lf\" y=\"%lf\" stroke=\"%s\" fill=\"%s\" font-family=\"%s\" font-weight=\"%s\" font-size=\"%spt\" text-anchor=\"%s\">%s</text>\n",
+                             id, (double)x, (double)y, corb, corp, fam_svg, peso_svg, current_size, ancora_str_svg, texto_conteudo);
                  }
-            } else { 
-                 fprintf(stderr, "Erro ao ler comando 't': Formato inválido na linha: %s", linha_buffer);
             }
         }
         else if (strcmp(comando, "ts") == 0) {
-            // Ignora
-        } else {
-             fprintf(stderr, "Comando desconhecido no .geo: '%s'\n", comando);
+            sscanf(args_ptr, "%s %s %s", current_fam, current_weight, current_size);
         }
-
+        
         if (nova_forma) {
             adicionar_na_fila(ground->todas_as_formas, (Forma)nova_forma); 
         }
     }
 
+    fprintf(svg, "</g>\n"); 
     fprintf(svg, "</svg>\n"); 
     return (Ground)ground; 
 }
@@ -184,20 +203,16 @@ void destruir_ground(Ground g) {
     while(remover_da_fila(ground->todas_as_formas, &forma_wrapper_ptr)) {
         FormaStruct* forma = (FormaStruct*)forma_wrapper_ptr;
         if (forma) {
-        
             switch(forma->tipo) {
                 case TIPO_CIRCULO: liberar_circulo(forma->dados_forma); break;
                 case TIPO_RETANGULO: liberar_retangulo(forma->dados_forma); break;
                 case TIPO_LINHA: liberar_linha(forma->dados_forma); break;
                 case TIPO_TEXTO: liberar_texto(forma->dados_forma); break;
             }
-            
             free(forma);
         }
     }
-    
     destruir_fila(ground->todas_as_formas);
- 
     free(ground);
 }
 

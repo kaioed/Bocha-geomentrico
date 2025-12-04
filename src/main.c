@@ -4,6 +4,13 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#ifdef _WIN32
+#include <direct.h>
+#define MKDIR(path) _mkdir(path)
+#else
+#define MKDIR(path) mkdir(path, 0777)
+#endif
+
 #include "lib/formas/circulo/circulo.h"
 #include "lib/formas/retangulo/retangulo.h"
 #include "lib/formas/linha/linha.h"
@@ -19,7 +26,7 @@
 void criarDiretorioSeNaoExiste(const char *path) {
     struct stat st = {0};
     if (stat(path, &st) == -1) {
-        if (mkdir(path, 0777) != 0) {
+        if (MKDIR(path) != 0) {
             printf("Erro: não foi possível criar a pasta de saída %s\n", path);
             exit(1);
         }

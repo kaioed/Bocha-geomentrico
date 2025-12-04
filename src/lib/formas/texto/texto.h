@@ -23,19 +23,18 @@ typedef void *Texto;
  */
 Texto* criar_texto(float x, float y, char* corBorda, char* corPreenchimento, char anchor, char* conteudo, const char* fonte, int id);
 
-
-float area_texto(const Texto* t);
 /**
  * @brief Recebe um ponteiro para um texto e retorna a "área" do texto
  * @param t ponteiro para o texto
  * @return "área" do texto (20.0 * número de caracteres)
  */
+float area_texto(const Texto* t);
 
-void liberar_texto(Texto* t);
 /**
  * @brief Libera a memória alocada para o texto
  * @param t ponteiro para o texto
  */
+void liberar_texto(Texto* t);
 
 /**
  * @brief Ajusta a fonte do texto em tempo de execução
@@ -99,5 +98,19 @@ float get_y_texto(const Texto* t);
  * @return caractere de âncora
  */
 char get_anchor_texto(const Texto* t);
+
+/**
+ * @brief Define a cor de preenchimento do texto
+ * @param t ponteiro para o texto
+ * @param cor nova cor de preenchimento (ex: #FFFFFF)
+ */
+void set_corPreenchimento_texto(Texto* t, const char* cor);
+
+/**
+ * @brief Define a cor da borda do texto
+ * @param t ponteiro para o texto
+ * @param cor nova cor da borda (ex: #000000)
+ */
+void set_corBorda_texto(Texto* t, const char* cor);
 
 #endif

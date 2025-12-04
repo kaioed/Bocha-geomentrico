@@ -86,3 +86,11 @@ const char* get_cor_linha(const Linha* l) {
     const LinhaStruct* linha = (const LinhaStruct*)l;
     return linha->cor;
 }
+
+void set_cor_linha(Linha* l, const char* cor) {
+    LinhaStruct* linha = (LinhaStruct*)l;
+    if (linha && cor) {
+        strncpy(linha->cor, cor, sizeof(linha->cor)-1);
+        linha->cor[sizeof(linha->cor)-1] = '\0';
+    }
+}
