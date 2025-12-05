@@ -1,6 +1,8 @@
 #ifndef LINHA_H
 #define LINHA_H
 
+#include <stdbool.h>
+
 /*
  * @brief Linha é uma forma geométrica definida por dois pontos (x1, y1) e (x2, y2),
  * além de cor da linha e um identificador.
@@ -17,9 +19,10 @@ typedef void *Linha;
  * @param x2 posição x do ponto final
  * @param y2 posição y do ponto final
  * @param cor cor da linha (ex: #000000)
+ * @param dashed define se a linha é pontilhada (true) ou solida (false)
  * @return ponteiro para a linha criada
  */
-Linha* criar_linha(float x1, float y1, float x2, float y2, char* cor, int id);
+Linha* criar_linha(float x1, float y1, float x2, float y2, char* cor, bool dashed, int id);
 
 /**
  * @brief Recebe um ponteiro para uma linha e retorna o comprimento da linha
@@ -82,6 +85,13 @@ int get_id_linha(const Linha* l);
  * @return ponteiro para string da cor
  */
 const char* get_cor_linha(const Linha* l);
+
+/**
+ * @brief Verifica se a linha é pontilhada
+ * @param l ponteiro para a linha
+ * @return true se pontilhada, false caso contrário
+ */
+bool is_dashed_linha(const Linha* l);
 
 /**
  * @brief Define a cor da linha

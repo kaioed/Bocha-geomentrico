@@ -12,10 +12,11 @@ typedef struct {
     float x2;
     float y2;
     char cor[30];
+    bool dashed; // Novo campo
 } LinhaStruct;
 
 // Cria uma nova linha entre os pontos (x1, y1) e (x2, y2), com cor e id
-Linha* criar_linha(float x1, float y1, float x2, float y2, char* cor, int id) {
+Linha* criar_linha(float x1, float y1, float x2, float y2, char* cor, bool dashed, int id) {
     LinhaStruct* l = (LinhaStruct*) malloc(sizeof(LinhaStruct));
     if (!l) return NULL;
     l->tipo = "Linha";
@@ -24,6 +25,7 @@ Linha* criar_linha(float x1, float y1, float x2, float y2, char* cor, int id) {
     l->y1 = y1;
     l->x2 = x2;
     l->y2 = y2;
+    l->dashed = dashed; 
     if (cor == NULL) {
         free(l);
         return NULL;
@@ -85,6 +87,12 @@ int get_id_linha(const Linha* l) {
 const char* get_cor_linha(const Linha* l) {
     const LinhaStruct* linha = (const LinhaStruct*)l;
     return linha->cor;
+}
+
+// Retorna se é pontilhada
+bool is_dashed_linha(const Linha* l) {
+    const LinhaStruct* linha = (const LinhaStruct*)l;
+    return linha->dashed;
 }
 
 void set_cor_linha(Linha* l, const char* cor) {

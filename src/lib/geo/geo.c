@@ -143,7 +143,8 @@ Ground process_geo(FILE *geo, FILE *svg) {
         else if (strcmp(comando, "l") == 0) {
             int id; float x1, y1, x2, y2; char cor[32];
             if (sscanf(args_ptr, "%d %f %f %f %f %31s", &id, &x1, &y1, &x2, &y2, cor) == 6) {
-                 Linha* l = criar_linha(x1, y1, x2, y2, cor, id);
+                 // MODIFICAÇÃO: Passa false para dashed
+                 Linha* l = criar_linha(x1, y1, x2, y2, cor, false, id);
                  if (l) {
                      nova_forma = criar_forma_wrapper(id, TIPO_LINHA, l);
                     
@@ -175,7 +176,6 @@ Ground process_geo(FILE *geo, FILE *svg) {
                      else if (anchor == 'e' || anchor == 'E' || anchor == 'f' || anchor == 'F') ancora_str_svg = "end";
                      else if (anchor == 's' || anchor == 'S' || anchor == 'i' || anchor == 'I') ancora_str_svg = "start";
 
-                     // Formatação EXATA do Pietro
                      fprintf(svg, "\t<text id=\"%d\" x=\"%lf\" y=\"%lf\" stroke=\"%s\" fill=\"%s\" font-family=\"%s\" font-weight=\"%s\" font-size=\"%spt\" text-anchor=\"%s\">%s</text>\n",
                              id, (double)x, (double)y, corb, corp, fam_svg, peso_svg, current_size, ancora_str_svg, texto_conteudo);
                  }
