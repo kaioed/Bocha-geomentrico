@@ -64,51 +64,30 @@ void carregar_carregador(Fila fonte_ground, Carregador *c, int n, FILE *log)
     if (log)
         fprintf(log, "[lc] Carregando %d formas no Carregador ID %d\n", n, carreg->id);
 
-    // Fila temporária para guardar as formas e devolvê-las ao ground depois
-    Fila temp = iniciar_fila();
+    void **buffer_temp = (void**)malloc(n * sizeof(void*));
+    int count = 0;
 
     for (int i = 0; i < n; i++)
     {
-        Forma forma_wrapper_ptr = NULL;
-        // Remove da fila original
-        if (remover_da_fila(fonte_ground, &forma_wrapper_ptr))
-        {
-            if (forma_wrapper_ptr)
-            {
-                // Coloca no carregador
-                push(carreg->municao, forma_wrapper_ptr);
+        void* forma_ptr = NULL;
+        if (remover_da_fila(fonte_ground, &forma_ptr)) {
+            if (forma_ptr) {
+                buffer_temp[count++] = forma_ptr;
                 
-                // Salva na fila temporária para restaurar depois
-                adicionar_na_fila(temp, forma_wrapper_ptr);
-
-                if (log)
-                {
-                    const char *tipo_str = "Desconhecido";
-                    switch (forma_get_tipo(forma_wrapper_ptr))
-                    {
-                    case TIPO_CIRCULO: tipo_str = "Circulo"; break;
-                    case TIPO_RETANGULO: tipo_str = "Retangulo"; break;
-                    case TIPO_LINHA: tipo_str = "Linha"; break;
-                    case TIPO_TEXTO: tipo_str = "Texto"; break;
-                    }
-                    fprintf(log, "\t- Carregado: Forma ID %d (Tipo: %s)\n", forma_get_id_original(forma_wrapper_ptr), tipo_str);
+                if (log) {
+                    fprintf(log, "\t- Carregado e removido do Ground: Forma ID %d\n", forma_get_id_original(forma_ptr));
                 }
             }
-        }
-        else
-        {
-            if (log) fprintf(log, "\t- Fila de formas do Ground esgotada.\n");
+        } else {
             break;
         }
     }
 
-    // Restaura as formas para o ground (para que apareçam no desenho final)
-    void *ptr;
-    while(remover_da_fila(temp, &ptr)) {
-        adicionar_na_fila(fonte_ground, ptr);
+    for (int i = count - 1; i >= 0; i--) {
+        push(carreg->municao, buffer_temp[i]);
     }
-    destruir_fila(temp);
 
+    free(buffer_temp);
     if (log) fprintf(log, "\n");
 }
 
@@ -124,18 +103,16 @@ void carregar_disparador(Disparador *d_ptr, int n, char *comando)
     DisparadorInterno *disp = (DisparadorInterno *)(*d_ptr);
 
     char lado = comando[0]; 
-    CarregadorInterno *prioritario = (lado == 'e') ? disp->carregadorEsq : disp->carregadorDir;
-    CarregadorInterno *secundario  = (lado == 'e') ? disp->carregadorDir : disp->carregadorEsq;
+    CarregadorInterno *prioritario = (lado == 'e') ? disp->carregadorDir : disp->carregadorEsq;
+    CarregadorInterno *secundario  = (lado == 'e') ? disp->carregadorEsq : disp->carregadorDir;
 
     for (int i = 0; i < n; i++)
     {
         Forma forma = NULL;
         
-        // Tenta carregador principal
         if (prioritario && pop((Pilha *)&prioritario->municao, &forma)) {
             push(disp->disp, forma);
         }
-        // Se falhar, tenta o secundário (para corrigir o erro de lógica do t2.qry)
         else if (secundario && pop((Pilha *)&secundario->municao, &forma)) {
             push(disp->disp, forma);
         }

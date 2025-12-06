@@ -92,7 +92,7 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt) {
                     Elemento clone = elemento_clonar(base, x, y, NULL, false);
                     if (clone) {
                         arena_adicionar_elemento(arena, clone);
-                        adicionar_na_fila(get_ground_fila(ground), clone);
+                        
                         if (txt) fprintf(txt, "\tRajada %d: ID %d -> (%.1f, %.1f)\n", k+1, elemento_get_id_original(base), x, y);
                     }
                     k++;
@@ -115,34 +115,30 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt) {
                     float x_final = x_inicial + dx;
                     float y_final = y_inicial + dy;
                     Elemento clone = elemento_clonar(base, x_final, y_final, NULL, false);
+                    
                     if (clone) {
+                        // CORREÇÃO: Adiciona APENAS na arena.
                         arena_adicionar_elemento(arena, clone);
-                        adicionar_na_fila(get_ground_fila(ground), clone);
                     }
                     if (txt) fprintf(txt, "DSP: ID %d -> (%.1f, %.1f)\n", elemento_get_id_original(base), x_final, y_final);
 
-                   
+                    // Desenho auxiliar do comando 'v' (visual) continua direto no ground pois é decorativo
                     if (campos_lidos == 4 && strcmp(flag_visual, "v") == 0) {
                         double tam_caixa = 20.0;
-                       
                         void* caixa = creating_retangulo(x_inicial - (tam_caixa/2.0), y_inicial + (tam_caixa/2.0), tam_caixa, tam_caixa, "none", "red", -1); 
-                        
                         Elemento e_caixa = elemento_criar_wrapper(-1, TIPO_RETANGULO, caixa, x_inicial - (tam_caixa/2.0), y_inicial + (tam_caixa/2.0));
                         adicionar_na_fila(get_ground_fila(ground), e_caixa);
 
-                       
                         char id_str[16];
                         sprintf(id_str, "%d", id);
                         void* texto_id = creating_texto(x_inicial, y_inicial, "red", "red", 'm', id_str, "sans-serif,bold,12px", -1);
                         Elemento e_texto = elemento_criar_wrapper(-1, TIPO_TEXTO, texto_id, x_inicial, y_inicial);
                         adicionar_na_fila(get_ground_fila(ground), e_texto);
 
-                       
                         void* proj_y = creating_linha(x_final, y_inicial, x_final, y_final, "#FF0000", true, -1);
                         Elemento e_proj_y = elemento_criar_wrapper(-1, TIPO_LINHA, proj_y, x_final, y_inicial);
                         adicionar_na_fila(get_ground_fila(ground), e_proj_y);
 
-                      
                         void* proj_x = creating_linha(x_inicial, y_final, x_final, y_final, "#FF0000", true, -1);
                         Elemento e_proj_x = elemento_criar_wrapper(-1, TIPO_LINHA, proj_x, x_inicial, y_final);
                         adicionar_na_fila(get_ground_fila(ground), e_proj_x);
@@ -167,7 +163,6 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt) {
     arena_destruir(arena);
     contexto_destruir(ctx);
 }
-
 
 void* creating_retangulo(float x, float y, float w, float h, char* fill, char* stroke, int id) {
     return criar_retangulo(x, y, w, h, fill, stroke, id);
