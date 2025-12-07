@@ -12,10 +12,13 @@
 #include "../formas/retangulo/retangulo.h"
 #include "../formas/texto/texto.h"
 #include "../formas/linha/linha.h"
+#include "../formas/circulo/circulo.h" // Necessário para criar o marcador circular
 
+// Funções auxiliares
 void* creating_retangulo(float x, float y, float w, float h, char* fill, char* stroke, int id);
 void* creating_texto(float x, float y, char* stroke, char* fill, char anchor, char* content, char* font, int id);
 void* creating_linha(float x1, float y1, float x2, float y2, char* color, bool dashed, int id);
+void* creating_circulo(float x, float y, float r, char* fill, char* stroke, int id); // Nova auxiliar
 
 TipoForma forma_get_tipo(void* forma) {
     return elemento_get_tipo((Elemento)forma);
@@ -92,7 +95,6 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt) {
                     Elemento clone = elemento_clonar(base, x, y, NULL, false);
                     if (clone) {
                         arena_adicionar_elemento(arena, clone);
-                        
                         if (txt) fprintf(txt, "\tRajada %d: ID %d -> (%.1f, %.1f)\n", k+1, elemento_get_id_original(base), x, y);
                     }
                     k++;
@@ -117,32 +119,52 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt) {
                     Elemento clone = elemento_clonar(base, x_final, y_final, NULL, false);
                     
                     if (clone) {
-                        // CORREÇÃO: Adiciona APENAS na arena.
                         arena_adicionar_elemento(arena, clone);
                     }
                     if (txt) fprintf(txt, "DSP: ID %d -> (%.1f, %.1f)\n", elemento_get_id_original(base), x_final, y_final);
 
-                    // Desenho auxiliar do comando 'v' (visual) continua direto no ground pois é decorativo
+                    // --- INICIO DA CORREÇÃO VISUAL ---
                     if (campos_lidos == 4 && strcmp(flag_visual, "v") == 0) {
-                        double tam_caixa = 20.0;
-                        void* caixa = creating_retangulo(x_inicial - (tam_caixa/2.0), y_inicial + (tam_caixa/2.0), tam_caixa, tam_caixa, "none", "red", -1); 
-                        Elemento e_caixa = elemento_criar_wrapper(-1, TIPO_RETANGULO, caixa, x_inicial - (tam_caixa/2.0), y_inicial + (tam_caixa/2.0));
-                        adicionar_na_fila(get_ground_fila(ground), e_caixa);
+                        // 1. Linha Tracejada do Disparador até o Destino (Vermelha)
+                        void* linha_tiro = creating_linha(x_inicial, y_inicial, x_final, y_final, "red", true, -1);
+                        Elemento e_linha = elemento_criar_wrapper(-1, TIPO_LINHA, linha_tiro, x_inicial, y_inicial);
+                        adicionar_na_fila(get_ground_fila(ground), e_linha);
 
-                        char id_str[16];
-                        sprintf(id_str, "%d", id);
-                        void* texto_id = creating_texto(x_inicial, y_inicial, "red", "red", 'm', id_str, "sans-serif,bold,12px", -1);
-                        Elemento e_texto = elemento_criar_wrapper(-1, TIPO_TEXTO, texto_id, x_inicial, y_inicial);
-                        adicionar_na_fila(get_ground_fila(ground), e_texto);
+                        // 2. Pequeno círculo marcador no destino (Vermelho, sem preenchimento)
+                        void* marcador = creating_circulo(x_final, y_final, 3.0, "none", "red", -1);
+                        Elemento e_marcador = elemento_criar_wrapper(-1, TIPO_CIRCULO, marcador, x_final, y_final);
+                        adicionar_na_fila(get_ground_fila(ground), e_marcador);
 
-                        void* proj_y = creating_linha(x_final, y_inicial, x_final, y_final, "#FF0000", true, -1);
-                        Elemento e_proj_y = elemento_criar_wrapper(-1, TIPO_LINHA, proj_y, x_final, y_inicial);
-                        adicionar_na_fila(get_ground_fila(ground), e_proj_y);
+                        // 3. Guias e Textos (Roxo/Purple)
+                        char str_dx[32], str_dy[32];
+                        sprintf(str_dx, "%.2f", dx);
+                        sprintf(str_dy, "%.2f", dy);
 
-                        void* proj_x = creating_linha(x_inicial, y_final, x_final, y_final, "#FF0000", true, -1);
-                        Elemento e_proj_x = elemento_criar_wrapper(-1, TIPO_LINHA, proj_x, x_inicial, y_final);
-                        adicionar_na_fila(get_ground_fila(ground), e_proj_x);
+                        // Linha Guia Horizontal (x_shooter -> x_final, mantendo y_shooter)
+                        void* guia_h = creating_linha(x_inicial, y_inicial, x_final, y_inicial, "purple", true, -1);
+                        Elemento e_guia_h = elemento_criar_wrapper(-1, TIPO_LINHA, guia_h, x_inicial, y_inicial);
+                        adicionar_na_fila(get_ground_fila(ground), e_guia_h);
+
+                        // Linha Guia Vertical (x_final, y_shooter -> y_final)
+                        void* guia_v = creating_linha(x_final, y_inicial, x_final, y_final, "purple", true, -1);
+                        Elemento e_guia_v = elemento_criar_wrapper(-1, TIPO_LINHA, guia_v, x_final, y_inicial);
+                        adicionar_na_fila(get_ground_fila(ground), e_guia_v);
+
+                        // Texto DX (No meio da linha horizontal)
+                        float mid_h_x = x_inicial + dx * 0.5;
+                        void* txt_dx = creating_texto(mid_h_x, y_inicial - 5.0, "none", "purple", 'm', str_dx, "sans-serif", -1);
+                        Elemento e_txt_dx = elemento_criar_wrapper(-1, TIPO_TEXTO, txt_dx, mid_h_x, y_inicial - 5.0);
+                        adicionar_na_fila(get_ground_fila(ground), e_txt_dx);
+
+                        // Texto DY (No meio da linha vertical)
+                        float mid_v_y = y_inicial + dy * 0.5;
+                        // Nota: O projeto original rotaciona este texto. O seu sistema de Texto atual não suporta rotação facilmente.
+                        // O texto aparecerá na horizontal, mas na posição e cor corretas.
+                        void* txt_dy = creating_texto(x_final + 15.0, mid_v_y, "none", "purple", 'm', str_dy, "sans-serif", -1);
+                        Elemento e_txt_dy = elemento_criar_wrapper(-1, TIPO_TEXTO, txt_dy, x_final + 10.0, mid_v_y);
+                        adicionar_na_fila(get_ground_fila(ground), e_txt_dy);
                     }
+                    // --- FIM DA CORREÇÃO VISUAL ---
 
                 } else if (txt) fprintf(txt, "DSP: Disparador %d vazio.\n", id);
             } else if (txt) fprintf(txt, "DSP: ID %d nao encontrado.\n", id);
@@ -172,4 +194,7 @@ void* creating_texto(float x, float y, char* stroke, char* fill, char anchor, ch
 }
 void* creating_linha(float x1, float y1, float x2, float y2, char* color, bool dashed, int id) {
     return criar_linha(x1, y1, x2, y2, color, dashed, id);
+}
+void* creating_circulo(float x, float y, float r, char* fill, char* stroke, int id) {
+    return criar_circulo(x, y, r, fill, stroke, id);
 }

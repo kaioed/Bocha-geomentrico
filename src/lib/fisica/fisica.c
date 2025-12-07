@@ -62,13 +62,16 @@ void fisica_processar_colisoes(Arena arena, Ground ground, FILE* txt, double* po
                 if (Jpos) adicionar_na_fila(fg, Jpos);
             } 
             else {
-                if (txt) fprintf(txt, "\t-> Colisao com modificacao de cores. Ambos sobrevivem.\n");
+
+                if (txt) fprintf(txt, "\t-> Colisao com modificacao de cores e clonagem.\n");
                 
+                Elemento Iorig = elemento_clonar(I, elemento_get_x(I), elemento_get_y(I), NULL, false);
+                if (Iorig) adicionar_na_fila(fg, Iorig);
+
                 const char* cor_ref = obter_cor_preenchimento(I);
                 Elemento Jmod = elemento_clonar(J, elemento_get_x(J), elemento_get_y(J), cor_ref, false);
                 if (Jmod) {
                     adicionar_na_fila(fg, Jmod);
-                    (*clonadas)++;
                 }
 
                 Elemento Imod = elemento_clonar(I, elemento_get_x(I), elemento_get_y(I), NULL, true);
