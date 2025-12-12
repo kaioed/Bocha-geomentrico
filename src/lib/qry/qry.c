@@ -12,13 +12,73 @@
 #include "../formas/retangulo/retangulo.h"
 #include "../formas/texto/texto.h"
 #include "../formas/linha/linha.h"
-#include "../formas/circulo/circulo.h" // Necessário para criar o marcador circular
+#include "../formas/circulo/circulo.h"
 
-// Funções auxiliares
 void* creating_retangulo(float x, float y, float w, float h, char* fill, char* stroke, int id);
 void* creating_texto(float x, float y, char* stroke, char* fill, char anchor, char* content, char* font, int id);
 void* creating_linha(float x1, float y1, float x2, float y2, char* color, bool dashed, int id);
-void* creating_circulo(float x, float y, float r, char* fill, char* stroke, int id); // Nova auxiliar
+void* creating_circulo(float x, float y, float r, char* fill, char* stroke, int id);
+
+Elemento mover_forma_preservando_id(Elemento original, float novo_x, float novo_y) {
+    if (!original) return NULL;
+    
+    int id = elemento_get_id_original(original);
+    void* dados = elemento_get_dados(original);
+    TipoForma tipo = elemento_get_tipo(original);
+    void* nova_forma_dados = NULL;
+
+    switch(tipo) {
+        case TIPO_CIRCULO: {
+            float r = get_raio(dados);
+            const char* cp = get_corPreenchimento_circulo(dados);
+            const char* cb = get_corBorda_circulo(dados);
+            nova_forma_dados = creating_circulo(novo_x, novo_y, r, (char*)cp, (char*)cb, id);
+            break;
+        }
+        case TIPO_RETANGULO: {
+            float w = get_largura(dados);
+            float h = get_altura(dados);
+            const char* cp = get_corPreenchimento_retangulo(dados);
+            const char* cb = get_corBorda_retangulo(dados);
+            nova_forma_dados = creating_retangulo(novo_x, novo_y, w, h, (char*)cp, (char*)cb, id);
+            break;
+        }
+        case TIPO_LINHA: {
+            float x1_ant = get_x1_linha(dados);
+            float y1_ant = get_y1_linha(dados);
+            float dx = novo_x - x1_ant;
+            float dy = novo_y - y1_ant;
+            float x2 = get_x2_linha(dados) + dx;
+            float y2 = get_y2_linha(dados) + dy;
+            const char* cor = get_cor_linha(dados);
+            bool dashed = is_dashed_linha(dados);
+            nova_forma_dados = creating_linha(novo_x, novo_y, x2, y2, (char*)cor, dashed, id);
+            break;
+        }
+        case TIPO_TEXTO: {
+            const char* cp = get_corPreenchimento_texto(dados);
+            const char* cb = get_corBorda_texto(dados);
+            char anc = get_anchor_texto(dados);
+            const char* txt = get_conteudo_texto(dados);
+            const char* font = get_fonte_texto(dados);
+            nova_forma_dados = creating_texto(novo_x, novo_y, (char*)cb, (char*)cp, anc, (char*)txt, (char*)font, id);
+            break;
+        }
+    }
+
+    if (nova_forma_dados) {
+        Elemento novo_el = elemento_criar_wrapper(id, tipo, nova_forma_dados, novo_x, novo_y);
+        switch(tipo) {
+            case TIPO_CIRCULO: liberar_circulo(dados); break;
+            case TIPO_RETANGULO: liberar_retangulo(dados); break;
+            case TIPO_LINHA: liberar_linha(dados); break;
+            case TIPO_TEXTO: liberar_texto(dados); break;
+        }
+        free(original); 
+        return novo_el;
+    }
+    return NULL;
+}
 
 TipoForma forma_get_tipo(void* forma) {
     return elemento_get_tipo((Elemento)forma);
@@ -82,23 +142,122 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt) {
             
             if (d) {
                 if(txt) fprintf(txt, "[rjd] Rajada ID %d lado %s\n", id, l);
-                int k=0;
-                while(1) {
-                    carregar_disparador(&d, 1, l);
-                    Elemento base = (Elemento)disparador_disparar_forma(&d);
-                    if (!base) break;
-                    total_disparos++;
+                
+                Carregador alvo = NULL;
+                char lado_selecionado = ' ';
 
-                    float x = disparador_get_x(&d) + dx + k*ix;
-                    float y = disparador_get_y(&d) + dy + k*iy;
-                    
-                    Elemento clone = elemento_clonar(base, x, y, NULL, false);
-                    if (clone) {
-                        arena_adicionar_elemento(arena, clone);
-                        if (txt) fprintf(txt, "\tRajada %d: ID %d -> (%.1f, %.1f)\n", k+1, elemento_get_id_original(base), x, y);
+                if (l[0] == 'e' || l[0] == 'E') {
+                    alvo = disparador_get_carregador_esq(&d);
+                    if (!alvo || carregador_vazio(&alvo)) {
+                        alvo = disparador_get_carregador_dir(&d);
+                        lado_selecionado = 'd';
+                    } else {
+                        lado_selecionado = 'e';
                     }
-                    k++;
+                } else {
+                    alvo = disparador_get_carregador_dir(&d);
+                    if (!alvo || carregador_vazio(&alvo)) {
+                        alvo = disparador_get_carregador_esq(&d);
+                        lado_selecionado = 'e';
+                    } else {
+                        lado_selecionado = 'd';
+                    }
                 }
+
+                if (!alvo || carregador_vazio(&alvo)) {
+                    if (txt) fprintf(txt, "\tRajada cancelada: sem municao.\n");
+                    continue;
+                }
+
+                char comando_lado[2] = {lado_selecionado, '\0'};
+                
+                Elemento formas_buffer[100];
+                int qtd_formas = 0;
+
+                for (int k = 0; k < 100; k++) {
+                    if (carregador_vazio(&alvo)) break; 
+                    carregar_disparador(&d, 1, comando_lado);
+                    Elemento e = (Elemento)disparador_disparar_forma(&d);
+                    if (!e) break;
+                    formas_buffer[qtd_formas++] = e;
+                    total_disparos++;
+                }
+
+                float curr_dx = dx;
+                float curr_dy = dy;
+
+                for (int k = 0; k < qtd_formas; k += 2) {
+                    if (k + 1 >= qtd_formas) {
+                        Elemento I = formas_buffer[k];
+                        float x = disparador_get_x(&d) + curr_dx;
+                        float y = disparador_get_y(&d) + curr_dy;
+                        
+                        Elemento I_movido = mover_forma_preservando_id(I, x, y);
+                        if (I_movido) {
+                            adicionar_na_fila(get_ground_fila(ground), I_movido);
+                            if (txt) fprintf(txt, "\tRajada Impar: ID %d -> (%.1f, %.1f)\n", elemento_get_id_original(I_movido), x, y);
+                        }
+                        break;
+                    }
+
+                    Elemento I = formas_buffer[k];
+                    Elemento J = formas_buffer[k+1];
+
+                    float ix_pos = disparador_get_x(&d) + curr_dx;
+                    float iy_pos = disparador_get_y(&d) + curr_dy;
+                    curr_dx += ix;
+                    curr_dy += iy;
+
+                    float jx_pos = disparador_get_x(&d) + curr_dx;
+                    float jy_pos = disparador_get_y(&d) + curr_dy;
+                    curr_dx += ix;
+                    curr_dy += iy;
+
+                    Elemento I_movido = mover_forma_preservando_id(I, ix_pos, iy_pos);
+                    Elemento J_movido = mover_forma_preservando_id(J, jx_pos, jy_pos);
+
+                    float areaI = elemento_calcular_area(I_movido);
+                    float areaJ = elemento_calcular_area(J_movido);
+
+                    if (areaI < areaJ) {
+                        pontuacao += areaI;
+                        total_esmagadas++;
+                        if (txt) fprintf(txt, "SOBREPOSICAO (RJD PAR): Forma I id:%d (area %.2f) esmagada pela Forma J id:%d (area %.2f).\n",
+                            elemento_get_id_original(I_movido), areaI, elemento_get_id_original(J_movido), areaJ);
+                        
+                        if (J_movido) adicionar_na_fila(get_ground_fila(ground), J_movido);
+                        
+                        if (I_movido) {
+                            void* dados = elemento_get_dados(I_movido);
+                            switch(elemento_get_tipo(I_movido)) {
+                                case TIPO_CIRCULO: liberar_circulo(dados); break;
+                                case TIPO_RETANGULO: liberar_retangulo(dados); break;
+                                case TIPO_LINHA: liberar_linha(dados); break;
+                                case TIPO_TEXTO: liberar_texto(dados); break;
+                            }
+                            free(I_movido);
+                        }
+                    } else {
+                        pontuacao += areaJ;
+                        total_esmagadas++;
+                        if (txt) fprintf(txt, "SOBREPOSICAO (RJD PAR): Forma J id:%d (area %.2f) esmagada pela Forma I id:%d (area %.2f).\n",
+                            elemento_get_id_original(J_movido), areaJ, elemento_get_id_original(I_movido), areaI);
+                        
+                        if (I_movido) adicionar_na_fila(get_ground_fila(ground), I_movido);
+                        
+                        if (J_movido) {
+                            void* dados = elemento_get_dados(J_movido);
+                            switch(elemento_get_tipo(J_movido)) {
+                                case TIPO_CIRCULO: liberar_circulo(dados); break;
+                                case TIPO_RETANGULO: liberar_retangulo(dados); break;
+                                case TIPO_LINHA: liberar_linha(dados); break;
+                                case TIPO_TEXTO: liberar_texto(dados); break;
+                            }
+                            free(J_movido);
+                        }
+                    }
+                }
+
             } else if (txt) fprintf(txt, "RJD: ID %d nao encontrado.\n", id);
         }
         else if (strncmp(cmd, "dsp", 3) == 0) {
@@ -123,48 +282,46 @@ void process_qry(FILE *qry, FILE *svg, Ground ground, FILE *txt) {
                     }
                     if (txt) fprintf(txt, "DSP: ID %d -> (%.1f, %.1f)\n", elemento_get_id_original(base), x_final, y_final);
 
-                    // --- INICIO DA CORREÇÃO VISUAL ---
                     if (campos_lidos == 4 && strcmp(flag_visual, "v") == 0) {
-                        // 1. Linha Tracejada do Disparador até o Destino (Vermelha)
                         void* linha_tiro = creating_linha(x_inicial, y_inicial, x_final, y_final, "red", true, -1);
                         Elemento e_linha = elemento_criar_wrapper(-1, TIPO_LINHA, linha_tiro, x_inicial, y_inicial);
                         adicionar_na_fila(get_ground_fila(ground), e_linha);
 
-                        // 2. Pequeno círculo marcador no destino (Vermelho, sem preenchimento)
                         void* marcador = creating_circulo(x_final, y_final, 3.0, "none", "red", -1);
                         Elemento e_marcador = elemento_criar_wrapper(-1, TIPO_CIRCULO, marcador, x_final, y_final);
                         adicionar_na_fila(get_ground_fila(ground), e_marcador);
 
-                        // 3. Guias e Textos (Roxo/Purple)
                         char str_dx[32], str_dy[32];
                         sprintf(str_dx, "%.2f", dx);
                         sprintf(str_dy, "%.2f", dy);
 
-                        // Linha Guia Horizontal (x_shooter -> x_final, mantendo y_shooter)
                         void* guia_h = creating_linha(x_inicial, y_inicial, x_final, y_inicial, "purple", true, -1);
                         Elemento e_guia_h = elemento_criar_wrapper(-1, TIPO_LINHA, guia_h, x_inicial, y_inicial);
                         adicionar_na_fila(get_ground_fila(ground), e_guia_h);
 
-                        // Linha Guia Vertical (x_final, y_shooter -> y_final)
                         void* guia_v = creating_linha(x_final, y_inicial, x_final, y_final, "purple", true, -1);
                         Elemento e_guia_v = elemento_criar_wrapper(-1, TIPO_LINHA, guia_v, x_final, y_inicial);
                         adicionar_na_fila(get_ground_fila(ground), e_guia_v);
 
-                        // Texto DX (No meio da linha horizontal)
                         float mid_h_x = x_inicial + dx * 0.5;
                         void* txt_dx = creating_texto(mid_h_x, y_inicial - 5.0, "none", "purple", 'm', str_dx, "sans-serif", -1);
                         Elemento e_txt_dx = elemento_criar_wrapper(-1, TIPO_TEXTO, txt_dx, mid_h_x, y_inicial - 5.0);
                         adicionar_na_fila(get_ground_fila(ground), e_txt_dx);
 
-                        // Texto DY (No meio da linha vertical)
                         float mid_v_y = y_inicial + dy * 0.5;
-                        // Nota: O projeto original rotaciona este texto. O seu sistema de Texto atual não suporta rotação facilmente.
-                        // O texto aparecerá na horizontal, mas na posição e cor corretas.
                         void* txt_dy = creating_texto(x_final + 15.0, mid_v_y, "none", "purple", 'm', str_dy, "sans-serif", -1);
                         Elemento e_txt_dy = elemento_criar_wrapper(-1, TIPO_TEXTO, txt_dy, x_final + 10.0, mid_v_y);
                         adicionar_na_fila(get_ground_fila(ground), e_txt_dy);
                     }
-                    // --- FIM DA CORREÇÃO VISUAL ---
+
+                    void* dadosBase = elemento_get_dados(base);
+                    switch(elemento_get_tipo(base)) {
+                        case TIPO_CIRCULO: liberar_circulo(dadosBase); break;
+                        case TIPO_RETANGULO: liberar_retangulo(dadosBase); break;
+                        case TIPO_LINHA: liberar_linha(dadosBase); break;
+                        case TIPO_TEXTO: liberar_texto(dadosBase); break;
+                    }
+                    free(base);
 
                 } else if (txt) fprintf(txt, "DSP: Disparador %d vazio.\n", id);
             } else if (txt) fprintf(txt, "DSP: ID %d nao encontrado.\n", id);
